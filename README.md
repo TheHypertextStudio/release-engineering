@@ -43,7 +43,11 @@ policy.
 
 Native Xcode, SwiftPM, pnpm, Turbo, Gradle, Terraform and provider CLIs retain
 their build and cache responsibilities. Existing `bootstrap worktree prepare`
-continues to prepare worktrees. Infrastructure provisioning remains explicit.
+continues to prepare worktrees. Its v0.1.0 binaries are mirrored unchanged in
+this repository's v0.1.0 release so PR tokens need no private repository access.
+Generated bootstrap launchers use the public mirror and retain the original
+platform checksums. Bootstrap continues to own its implementation and cache
+behavior. Infrastructure provisioning remains explicit.
 
 The current adapters cover native macOS apps, Cloud Run services, Cloudflare
 Workers, Pages, Vercel output and npm packages. Android and iOS distribution
