@@ -42,6 +42,7 @@ resource "google_iam_workload_identity_pool_provider" "github" {
   attribute_mapping = {
     "google.subject"          = "assertion.sub"
     "attribute.repository_id" = "assertion.repository_id"
+    "attribute.phase"         = "'${each.key}'"
   }
   attribute_condition = "assertion.repository_id == '${var.repository_id}' && assertion.repository_owner_id == '${var.owner_id}' && assertion.ref == 'refs/heads/${var.default_branch}' && ${local.workflow_conditions[each.key]}"
   oidc {
@@ -53,7 +54,7 @@ resource "google_service_account_iam_member" "federated" {
   for_each           = local.phases
   service_account_id = google_service_account.lifecycle[each.key].name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.product.name}/attribute.repository_id/${var.repository_id}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.product.name}/attribute.phase/${each.key}"
 }
 
 resource "google_secret_manager_secret" "bindings" {

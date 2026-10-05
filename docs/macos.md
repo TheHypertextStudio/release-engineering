@@ -99,6 +99,21 @@ Credential bootstrap owns certificate import and cleanup. Notarization uses
 `APPLE_API_PRIVATE_KEY`, `APPLE_API_KEY_ID` and `APPLE_API_ISSUER` from the runner.
 It writes the API key to a temporary protected file for `notarytool`.
 
+Apps with registered App Groups declare `direct_provisioning_profiles` by bundle
+ID. Each entry names a profile `specifier` and its native `build_setting`, such
+as `STUDIO_APP_PROFILE`. The target's Release configuration sets
+`PROVISIONING_PROFILE_SPECIFIER` to `$(STUDIO_APP_PROFILE)`. Each target retains
+its own entitlement file. The shared adapter never overrides all targets with
+the main app's entitlements.
+
+`APPLE_PROVISIONING_PROFILES_BASE64` binds one JSON list of base64-encoded Apple
+profiles. Credential preparation verifies each profile's team, bundle ID and
+declared name before installing it. Cleanup removes only profiles installed by
+that run. Direct and Store profiles remain distinct even for the same bundle ID.
+PKCS#12 imports must pass a real `security import` check before provisioning.
+Mac-compatible OpenSSL exports use `-keypbe PBE-SHA1-3DES`,
+`-certpbe PBE-SHA1-3DES` and `-macalg sha1` for that encrypted interchange file.
+
 The lifecycle renders `download_url` to the immutable candidate directory before
 calling the adapter. Promotion publishes the returned ZIP and DMG before the
 mutable appcast. It verifies the candidate manifest and artifact digests and

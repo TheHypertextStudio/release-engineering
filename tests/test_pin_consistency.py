@@ -11,6 +11,9 @@ class PinConsistencyTests(unittest.TestCase):
             root=Path(temporary); project=root/'App.xcodeproj'; project.mkdir()
             pbx=project/'project.pbxproj'
             pbx.write_text('"repositoryURL" = "https://github.com/TheHypertextStudio/release-engineering.git";\n"requirement" = {\n"kind" = "revision";\n"revision" = "'+'0'*40+'";\n};')
+            resolved=project/'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'
+            resolved.parent.mkdir(parents=True)
+            resolved.write_text(json.dumps({'version':3,'pins':[{'identity':'release-engineering','location':'https://github.com/TheHypertextStudio/release-engineering.git','state':{'revision':'0'*40}}]}))
             workflows=root/'.github/workflows'; workflows.mkdir(parents=True)
             (workflows/'candidate.yml').write_text("tooling_revision: '"+'0'*40+"'\n")
             archive=b'archive'; import hashlib
@@ -25,3 +28,4 @@ class PinConsistencyTests(unittest.TestCase):
                 update(root)
             self.assertNotIn('0'*40,pbx.read_text())
             self.assertIn('a'*40,pbx.read_text())
+            self.assertEqual(json.loads(resolved.read_text())['pins'][0]['state'],{'revision':'a'*40})

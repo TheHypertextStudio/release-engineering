@@ -41,6 +41,13 @@ identities cannot read it. The updater creates a reviewable branch and never
 approves or promotes its own changes. A committed version override is consumed
 when that version reaches production, so the next push derives a new version.
 
+An independent review found that repository-wide impersonation grants defeated
+phase isolation. The live grants now bind each account to a fixed provider
+phase. The module maps that phase separately from repository identity. Review
+also corrected target entitlement overrides and stale Swift resolution pins.
+The actual Developer ID archive is blocked by missing App Groups profiles.
+Apple registration and profile creation require the pending user confirmation.
+
 ## Open acceptance
 
 The first signed Curfew candidate must pass hosted validation, notarization,

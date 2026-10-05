@@ -36,7 +36,7 @@ def execute(command, cwd, *, env=None, input=None):
 def _settings(config, component):
     policy = config['release'].get('macos', {})
     facts = dict(component.get('macos', {}))
-    for name in ('app_name', 'bundle_id', 'min_system_version', 'architectures', 'store_configuration', 'store_provisioning_profiles'):
+    for name in ('app_name', 'bundle_id', 'min_system_version', 'architectures', 'store_configuration', 'store_provisioning_profiles', 'direct_provisioning_profiles'):
         if name in component:
             facts[name] = component[name]
     declared_entitlements = component.get('entitlements')
@@ -178,7 +178,14 @@ def archive(config, component, directory, version, build_number, *, runner, stor
     archive_path = directory / 'Application.xcarchive'
     cwd = (config.root / component['path']).resolve()
     configuration = facts.get('store_configuration', 'AppStore') if store else component.get('build', {}).get('configuration', 'Release')
-    runner(['xcodebuild', *_xcode_target({**component,'scheme':component.get('store_scheme',component['scheme'])} if store else component), '-configuration', configuration, '-destination', 'generic/platform=macOS', '-jobs', '2', '-archivePath', str(archive_path), f'MARKETING_VERSION={version}', f'CURRENT_PROJECT_VERSION={build_number}', f'DEVELOPMENT_TEAM={policy["team_id"]}', 'CODE_SIGN_STYLE=Manual',f'CODE_SIGN_IDENTITY={policy.get("store",{}).get("application_identity","Apple Distribution") if store else policy["developer_id"]}', *([f'ARCHS={" ".join(facts["architectures"])}','ONLY_ACTIVE_ARCH=NO'] if facts.get('architectures') else []), *([] if store else [f'INFOPLIST_KEY_SUFeedURL={policy["sparkle"]["feed_url"]}', f'INFOPLIST_KEY_SUPublicEDKey={policy["sparkle"]["public_key"]}']), f'CODE_SIGN_ENTITLEMENTS={_path(config, facts["store_entitlements"] if store else facts["entitlements"])}', 'archive'], cwd)
+    profiles = facts.get('store_provisioning_profiles', {}) if store else facts.get('direct_provisioning_profiles', {})
+    profile_settings=[]
+    if not store:
+        for bundle, profile in profiles.items():
+            if not isinstance(profile,dict) or not re.fullmatch(r'STUDIO_[A-Z0-9_]+',str(profile.get('build_setting',''))) or not isinstance(profile.get('specifier'),str) or not profile['specifier']:
+                raise MacOSError('Direct provisioning requires a profile specifier and native build setting')
+            profile_settings.append(f'{profile["build_setting"]}={profile["specifier"]}')
+    runner(['xcodebuild', *_xcode_target({**component,'scheme':component.get('store_scheme',component['scheme'])} if store else component), '-configuration', configuration, '-destination', 'generic/platform=macOS', '-jobs', '2', '-archivePath', str(archive_path), f'MARKETING_VERSION={version}', f'CURRENT_PROJECT_VERSION={build_number}', f'DEVELOPMENT_TEAM={policy["team_id"]}', 'CODE_SIGN_STYLE=Manual',*profile_settings,f'CODE_SIGN_IDENTITY={policy.get("store",{}).get("application_identity","Apple Distribution") if store else policy["developer_id"]}', *([f'ARCHS={" ".join(facts["architectures"])}','ONLY_ACTIVE_ARCH=NO'] if facts.get('architectures') else []), *([] if store else [f'INFOPLIST_KEY_SUFeedURL={policy["sparkle"]["feed_url"]}', f'INFOPLIST_KEY_SUPublicEDKey={policy["sparkle"]["public_key"]}']), 'archive'], cwd)
     options = {'method': 'app-store-connect' if store else 'developer-id', 'teamID': policy['team_id'], 'signingStyle': 'manual', 'stripSwiftSymbols': True, 'destination': 'export'}
     if store:
         options['signingCertificate'] = policy.get('store', {}).get('application_identity', 'Apple Distribution')
@@ -188,6 +195,8 @@ def archive(config, component, directory, version, build_number, *, runner, stor
         options['provisioningProfiles'] = profiles
     else:
         options['signingCertificate'] = policy['developer_id']
+        if profiles:
+            options['provisioningProfiles'] = {bundle:profile['specifier'] for bundle,profile in profiles.items()}
     options_path = directory / 'ExportOptions.plist'
     options_path.write_bytes(plistlib.dumps(options))
     export = directory / 'export'
@@ -236,7 +245,52 @@ def _code_targets(app):
 
 def sign(config, component, app, *, runner):
     policy, facts = _settings(config, component)
-    for target in [*_code_targets(app), app]:
+    targets=[*_code_targets(app), app]
+    resolved={}
+    for target in targets:
+        if not target.is_dir() or target.suffix not in {'.app','.appex','.xpc'}:
+            continue
+        info=plistlib.loads((target/'Contents/Info.plist').read_bytes())
+        bundle=info.get('CFBundleIdentifier')
+        profile=facts.get('direct_provisioning_profiles',{}).get(bundle)
+        if profile:
+            relative=str(target.relative_to(app)) if target != app else '.'
+            declared=facts['entitlements'] if target==app else facts.get('nested_entitlements',{}).get(relative)
+            expected=entitlements(config,declared)
+            actual=plistlib.loads(runner(['codesign','-d','--entitlements',':-',str(target)],config.root).encode())
+            validate_entitlements(actual)
+            if any(actual.get(key)!=value for key,value in expected.items()):
+                raise MacOSError('Exported bundle does not contain declared entitlements')
+            identity=f'{policy["team_id"]}.{bundle}'
+            if actual.get('com.apple.application-identifier')!=identity or actual.get('com.apple.developer.team-identifier')!=policy['team_id']:
+                raise MacOSError('Exported bundle signing identity differs from declaration')
+            embedded=target/'Contents/embedded.provisionprofile'
+            if not embedded.is_file():
+                raise MacOSError('Exported bundle is missing its provisioning profile')
+            authorization=plistlib.loads(runner(['security','cms','-D','-i',str(embedded)],config.root).encode())
+            granted=authorization.get('Entitlements',{})
+            if policy['team_id'] not in authorization.get('TeamIdentifier',[]) or authorization.get('Name')!=profile['specifier'] or granted.get('com.apple.application-identifier')!=identity:
+                raise MacOSError('Embedded profile does not authorize the exported bundle')
+            if not set(actual.get('com.apple.security.application-groups',[])).issubset(granted.get('com.apple.security.application-groups',[])):
+                raise MacOSError('Embedded profile does not authorize the declared App Groups')
+            resolved[target]=actual
+    with tempfile.TemporaryDirectory(prefix='studio-signing-entitlements-') as temporary:
+        _sign_targets(config,policy,facts,app,targets,resolved,Path(temporary),runner)
+    runner(['codesign', '--verify', '--deep', '--strict', '--verbose=2', str(app)], config.root)
+    for target,expected in resolved.items():
+        actual=plistlib.loads(runner(['codesign','-d','--entitlements',':-',str(target)],config.root).encode())
+        if actual!=expected:
+            raise MacOSError('Re-signing changed the verified profile entitlements')
+    actual = runner(['codesign', '-d', '--entitlements', ':-', str(app)], config.root)
+    actual_values = plistlib.loads(actual.encode())
+    validate_entitlements(actual_values)
+    expected_values = entitlements(config, facts['entitlements'])
+    if any(actual_values.get(key) != value for key, value in expected_values.items()):
+        raise MacOSError('Signed app does not contain declared entitlements')
+
+
+def _sign_targets(config,policy,facts,app,targets,resolved,temporary,runner):
+    for index,target in enumerate(targets):
         relative = str(target.relative_to(app)) if target != app else '.'
         entitlement = facts['entitlements'] if target == app else facts.get('nested_entitlements', {}).get(relative)
         sparkle_helper = any(parent.name == 'Sparkle.framework' for parent in target.parents)
@@ -246,15 +300,12 @@ def sign(config, component, app, *, runner):
         if sparkle_helper:
             command += ['--preserve-metadata=entitlements']
         if entitlement:
-            command += ['--entitlements', str(_path(config, entitlement))]
+            path=_path(config,entitlement)
+            if target in resolved:
+                path=temporary/f'{index}.plist'
+                path.write_bytes(plistlib.dumps(resolved[target]))
+            command += ['--entitlements', str(path)]
         runner([*command, str(target)], config.root)
-    runner(['codesign', '--verify', '--deep', '--strict', '--verbose=2', str(app)], config.root)
-    actual = runner(['codesign', '-d', '--entitlements', ':-', str(app)], config.root)
-    actual_values = plistlib.loads(actual.encode())
-    validate_entitlements(actual_values)
-    expected_values = entitlements(config, facts['entitlements'])
-    if any(actual_values.get(key) != value for key, value in expected_values.items()):
-        raise MacOSError('Signed app does not contain declared entitlements')
 
 
 def notarize(config, path, *, runner):

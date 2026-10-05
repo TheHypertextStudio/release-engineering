@@ -85,12 +85,63 @@ class MacOSTests(unittest.TestCase):
             archive = next(c for c in runner.calls if c[0] == 'xcodebuild' and 'archive' in c)
             self.assertIn('MARKETING_VERSION=1.2.3', archive)
             self.assertIn('CURRENT_PROJECT_VERSION=42', archive)
+            self.assertFalse(any(argument.startswith('CODE_SIGN_ENTITLEMENTS=') for argument in archive))
             sign_index = next(i for i,c in enumerate(runner.calls) if c[0].endswith('/sign_update') and '--verify' not in c)
             self.assertGreater(sign_index, max(i for i,c in enumerate(runner.calls) if c[:3] == ['xcrun', 'stapler', 'staple']))
             self.assertNotIn(KEY, str(runner.calls))
             codesign = [c for c in runner.calls if c[0] == 'codesign' and '--sign' in c and not c[-1].endswith('.dmg')]
             self.assertGreaterEqual(len(codesign), 2)
             self.assertTrue(all('runtime' in c and '--timestamp' in c for c in codesign))
+
+    def test_direct_profiles_select_native_targets_and_export_bindings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); config,component=fixture(root)
+            component['direct_provisioning_profiles']={'dev.williecubed.app':{'specifier':'Studio App Direct','build_setting':'STUDIO_APP_PROFILE'},'dev.williecubed.app.widget':{'specifier':'Studio Widget Direct','build_setting':'STUDIO_WIDGET_PROFILE'}}
+            runner=NativeRunner(root,config)
+            macos.archive(config,component,root/'archive','1.2.3',42,runner=runner)
+            command=next(c for c in runner.calls if 'archive' in c)
+            self.assertIn('STUDIO_APP_PROFILE=Studio App Direct',command)
+            self.assertIn('STUDIO_WIDGET_PROFILE=Studio Widget Direct',command)
+            options=plistlib.loads((root/'archive/ExportOptions.plist').read_bytes())
+            self.assertEqual(options['provisioningProfiles'],{'dev.williecubed.app':'Studio App Direct','dev.williecubed.app.widget':'Studio Widget Direct'})
+
+    def test_resigning_preserves_resolved_identity_before_leaf_signing_changes_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); config,component=fixture(root)
+            app=root/'App.app'; (app/'Contents/MacOS').mkdir(parents=True)
+            (app/'Contents/MacOS/App').write_bytes(b'\xcf\xfa\xed\xfebinary')
+            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'dev.williecubed.app'}))
+            (app/'Contents/embedded.provisionprofile').write_bytes(b'profile')
+            component['direct_provisioning_profiles']={'dev.williecubed.app':{'specifier':'Studio App Direct','build_setting':'STUDIO_APP_PROFILE'}}
+            resolved={'com.apple.security.get-task-allow':False,'com.apple.application-identifier':'TEAM.dev.williecubed.app','com.apple.developer.team-identifier':'TEAM'}
+            current=dict(resolved); captured=[]
+            def runner(command,cwd):
+                nonlocal current
+                if command[:2]==['security','cms']:
+                    return plistlib.dumps({'Name':'Studio App Direct','TeamIdentifier':['TEAM'],'Entitlements':{'com.apple.application-identifier':'TEAM.dev.williecubed.app'}}).decode()
+                if command[:2]==['codesign','-d']:
+                    return plistlib.dumps(current).decode()
+                if command[0]=='codesign' and '--force' in command:
+                    if '--entitlements' in command:
+                        current=plistlib.loads(Path(command[command.index('--entitlements')+1]).read_bytes()); captured.append(dict(current))
+                    else:
+                        current={}
+                return ''
+            macos.sign(config,component,app,runner=runner)
+            self.assertEqual(captured,[resolved])
+
+    def test_profile_identity_mismatch_blocks_before_resigning(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory); config,component=fixture(root); app=root/'App.app'; (app/'Contents').mkdir(parents=True)
+            (app/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'dev.williecubed.app'}))
+            component['direct_provisioning_profiles']={'dev.williecubed.app':{'specifier':'Studio App Direct','build_setting':'STUDIO_APP_PROFILE'}}
+            calls=[]
+            def runner(command,cwd):
+                calls.append(command)
+                return plistlib.dumps({'com.apple.security.get-task-allow':False,'com.apple.application-identifier':'OTHER.dev.williecubed.app','com.apple.developer.team-identifier':'OTHER'}).decode()
+            with self.assertRaisesRegex(macos.MacOSError,'signing identity'):
+                macos.sign(config,component,app,runner=runner)
+            self.assertFalse(any('--force' in command for command in calls))
 
     def test_notary_rejection_stops_before_appcast(self):
         with tempfile.TemporaryDirectory() as directory:
