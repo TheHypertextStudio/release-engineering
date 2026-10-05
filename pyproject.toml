@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hypertext-release-engineering"
+version = "0.1.0"
+description = "Shared product lifecycle and immutable release promotion"
+requires-python = ">=3.11"
+dependencies = ["PyYAML==6.0.3"]
+license = "MIT"
+
+[project.scripts]
+studio = "studio.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["studio*"]

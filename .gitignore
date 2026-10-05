@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+.build/
+.swiftpm/
+dist/
+build/
+.studio/
+*.egg-info/
+.DS_Store
+
+.terraform/
+*.tfplan
+.studio-engine/
+.studio-source/
