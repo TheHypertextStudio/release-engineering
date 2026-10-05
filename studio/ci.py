@@ -13,7 +13,7 @@ import zipfile
 from .candidate import CandidateError, PromotionJournal, load_candidate, sha256, validate_promotion, write_candidate
 from .config import load_config
 from .lifecycle import run
-from .providers import deploy_cloud_run, deploy_worker, deploy_site, publish_npm, execute, probe, upload_asset, worker_plan
+from .providers import deploy_cloud_run, deploy_worker, deploy_site, publish_npm, execute, probe, upload_asset, worker_plan, verify_download
 from .versioning import build_number, version_from_git
 
 
@@ -351,10 +351,12 @@ def promote_component(config, candidate, component, environment):
                     continue
                 destination = f'{config.product}/releases/{candidate.data["id"]}/{source.name}'
                 result[source.name] = upload_asset(hosting['bucket'],source,destination)
+                result[source.name]['probe']=verify_download(hosting['bucket'],destination,entry['sha256'])
         # Publish the feed only after all immutable objects exist and services pass production checks.
         for entry in matches:
             if entry['channel'] == 'direct' and Path(entry['path']).name == 'appcast.xml':
                 result['feed'] = upload_asset(hosting['bucket'],candidate.path.parent / entry['path'],f'{config.product}/appcast.xml',immutable=False)
+                result['feed']['probe']=verify_download(hosting['bucket'],f'{config.product}/appcast.xml',entry['sha256'])
         return {'state':'completed', **result}
     raise CandidateError(f'{component["kind"]} requires a distribution adapter before promotion')
 

@@ -133,6 +133,18 @@ def upload_asset(bucket, source, destination, *, immutable=True, runner=execute)
     return {"sha256": digest, "object": destination}
 
 
+def verify_download(bucket,destination,expected):
+    url='https://storage.googleapis.com/'+urllib.parse.quote(bucket,safe='')+'/'+urllib.parse.quote(destination,safe='/')
+    request=urllib.request.Request(url,headers={'Cache-Control':'no-cache'})
+    digest=hashlib.sha256()
+    with urllib.request.urlopen(request,timeout=30) as response:
+        for block in iter(lambda:response.read(128*1024),b''):
+            digest.update(block)
+    if digest.hexdigest()!=expected:
+        raise ValueError('Public download differs from the reviewed artifact')
+    return {'url':url,'sha256':expected,'status':'passed'}
+
+
 def provision(config, *, env, apply=False, runner=execute):
     if not re.fullmatch(r"[a-z][a-z0-9-]*",env):
         raise ValueError("Invalid provisioning environment")
