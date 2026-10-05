@@ -46,7 +46,7 @@ def native_command(component, action):
                 raise ConfigError('Swift build configuration must be debug or release')
             return ['swift', 'build', '-c', configuration, '--jobs', '2']
         if kind == 'macos':
-            return ['xcodebuild', *_xcode_target(component), '-configuration', build.get('configuration', 'Release'), '-jobs', '2', 'build']
+            return ['xcodebuild', *_xcode_target(component), '-configuration', build.get('configuration', 'Release'), '-jobs', '2', 'CODE_SIGNING_ALLOWED=NO', 'CODE_SIGNING_REQUIRED=NO', 'build']
         if kind == 'gradle':
             tasks = build.get('tasks', ['assemble'])
             if not isinstance(tasks, list) or not tasks or any(not isinstance(task, str) or not task or task.startswith('-') for task in tasks):

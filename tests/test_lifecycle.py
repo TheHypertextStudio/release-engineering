@@ -6,6 +6,12 @@ from studio.lifecycle import native_command, run
 from test_config import CONFIG
 
 class LifecycleTests(unittest.TestCase):
+    def test_validation_build_does_not_require_a_signing_credential(self):
+        command=native_command({'kind':'macos','project':'App.xcodeproj','scheme':'App','build':{'configuration':'Release'}},'build')
+        self.assertIn('CODE_SIGNING_ALLOWED=NO',command)
+        self.assertIn('CODE_SIGNING_REQUIRED=NO',command)
+        self.assertIn('Release',command)
+
     def test_native_build_commands_bound_parallelism(self):
         self.assertEqual(native_command({'kind': 'swiftpm', 'build': {'configuration': 'release'}}, 'build'), ['swift', 'build', '-c', 'release', '--jobs', '2'])
         self.assertEqual(native_command({'kind': 'pnpm', 'build': {'script': 'build'}}, 'build'), ['pnpm', 'run', 'build'])
