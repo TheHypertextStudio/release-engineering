@@ -9,7 +9,12 @@ terraform {
 }
 
 locals {
-  phases = toset(["candidate", "promote"])
+  phases = setunion(toset(["candidate", "promote"]), length(var.pin_update_credential_names) > 0 ? toset(["pins"]) : toset([]))
+  workflow_conditions = {
+    candidate = "(assertion.event_name == 'push' || assertion.event_name == 'repository_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/candidate.yml@${var.tooling_revision}'"
+    promote   = "((assertion.event_name == 'workflow_dispatch' && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/promote.yml@${var.tooling_revision}') || ((assertion.event_name == 'schedule' || assertion.event_name == 'workflow_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/reconcile-store.yml@${var.tooling_revision}'))"
+    pins      = "(assertion.event_name == 'schedule' || assertion.event_name == 'workflow_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/update-pins.yml@${var.tooling_revision}'"
+  }
 }
 
 data "google_storage_bucket" "distribution" {
@@ -38,7 +43,7 @@ resource "google_iam_workload_identity_pool_provider" "github" {
     "google.subject"          = "assertion.sub"
     "attribute.repository_id" = "assertion.repository_id"
   }
-  attribute_condition = "assertion.repository_id == '${var.repository_id}' && assertion.repository_owner_id == '${var.owner_id}' && assertion.ref == 'refs/heads/${var.default_branch}' && ${each.key == "candidate" ? "(assertion.event_name == 'push' || assertion.event_name == 'repository_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/candidate.yml@${var.tooling_revision}'" : "((assertion.event_name == 'workflow_dispatch' && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/promote.yml@${var.tooling_revision}') || ((assertion.event_name == 'schedule' || assertion.event_name == 'workflow_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/reconcile-store.yml@${var.tooling_revision}'))"}"
+  attribute_condition = "assertion.repository_id == '${var.repository_id}' && assertion.repository_owner_id == '${var.owner_id}' && assertion.ref == 'refs/heads/${var.default_branch}' && ${local.workflow_conditions[each.key]}"
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
   }
@@ -64,11 +69,19 @@ resource "google_secret_manager_secret" "bindings" {
 }
 
 resource "google_secret_manager_secret_iam_member" "candidate" {
-  for_each  = var.credential_names
+  for_each  = setsubtract(var.credential_names, var.pin_update_credential_names)
   project   = var.project_id
   secret_id = google_secret_manager_secret.bindings[each.key].secret_id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.lifecycle["candidate"].email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "pins" {
+  for_each  = var.pin_update_credential_names
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.bindings[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.lifecycle["pins"].email}"
 }
 
 resource "google_secret_manager_secret_iam_member" "promotion" {

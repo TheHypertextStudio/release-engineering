@@ -63,4 +63,7 @@ def version_from_git(root, override=None, *, previous=None):
         except subprocess.CalledProcessError:
             baseline, revision = '0.0.0', 'HEAD'
     commits = git('log', '--format=%B%x00', revision).split('\x00')
+    # A committed override is consumed once that version reaches production.
+    if previous is not None and override is not None and _version(override) == _version(baseline):
+        override = None
     return next_version(baseline, [message.strip() for message in commits if message.strip()], override)

@@ -38,3 +38,11 @@ variable "runtime_service_accounts" {
   type    = map(string)
   default = {}
 }
+variable "pin_update_credential_names" {
+  type    = set(string)
+  default = []
+  validation {
+    condition     = length(setsubtract(var.pin_update_credential_names, var.credential_names)) == 0
+    error_message = "Pin credentials must name declared product secrets."
+  }
+}

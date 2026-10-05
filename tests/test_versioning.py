@@ -42,3 +42,6 @@ class VersioningTests(unittest.TestCase):
             production=git('rev-parse','HEAD')
             path.write_text('third'); git('add','app'); message.write_text('fix: Correct behavior\n'); git('commit','--file',str(message))
             self.assertEqual(version_from_git(directory,previous={'version':'0.2.0','source_sha':production}),'0.2.1')
+            self.assertEqual(version_from_git(directory,'0.2.0',previous={'version':'0.2.0','source_sha':production}),'0.2.1')
+            with self.assertRaises(ValueError):
+                version_from_git(directory,'0.1.0',previous={'version':'0.2.0','source_sha':production})

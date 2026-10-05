@@ -35,6 +35,12 @@ The release projects are `hypertext-studio-releases` for hosting and
 `hypertext-curfew-release` for Curfew workload identities and secrets.
 Product access uses a separate namespace and service accounts.
 
+The pin updater uses a repository-scoped SSH deploy key in Secret Manager.
+A separate workload identity can read that key. Candidate and promotion
+identities cannot read it. The updater creates a reviewable branch and never
+approves or promotes its own changes. A committed version override is consumed
+when that version reaches production, so the next push derives a new version.
+
 ## Open acceptance
 
 The first signed Curfew candidate must pass hosted validation, notarization,
