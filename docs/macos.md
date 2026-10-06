@@ -40,6 +40,20 @@ sequenceDiagram
     Sparkle-->>Studio: Verified update signature and feed
 ```
 
+## Signing team
+
+Every project configuration declares the same company team as
+`release.macos.team_id`. Studio uses `T95VDD3A4W` for Debug, Release and AppStore.
+App, helper, extension and test targets inherit that project setting. Remove
+personal-team overrides from targets and keep export options on the company
+team. Lifecycle conformance rejects missing, empty or conflicting project team
+settings before candidate preparation.
+
+A project setting does not move an Apple identifier registration. Preserve the
+bundle ID and App Group when correcting signing. Verify their registration and
+profile under the company account separately. An unavailable identifier does
+not establish who owns it. Do not rename it to make a failed archive pass.
+
 ## Declaration
 
 Product facts belong at the macOS component root. The adapter also accepts the

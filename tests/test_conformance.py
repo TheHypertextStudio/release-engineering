@@ -38,8 +38,29 @@ class ConformanceTests(unittest.TestCase):
         workflow.parent.mkdir(parents=True)
         workflow.write_text("tooling_revision: '"+'c'*40+"'\n")
         with self.assertRaises(ValueError): check(self.config)
+
         workflow.unlink()
         project=self.root/'App.xcodeproj/project.pbxproj'
         project.parent.mkdir()
         project.write_text('repositoryURL = "https://github.com/TheHypertextStudio/release-engineering.git"; requirement = {kind = revision; revision = "'+'c'*40+'";};')
         with self.assertRaises(ValueError): check(self.config)
+
+    def test_declared_apple_team_rejects_a_personal_debug_override(self):
+        project=self.root/'App.xcodeproj/project.pbxproj'
+        project.parent.mkdir()
+        self.config.data['components']=[{'id':'app','kind':'macos','path':'.','project':'App.xcodeproj'}]
+        self.config.data['release']['macos']={'team_id':'T95VDD3A4W'}
+        project.write_text('DEVELOPMENT_TEAM = T95VDD3A4W;\n"DEVELOPMENT_TEAM" = "39AB9DY3K8";\n')
+        with self.assertRaisesRegex(ValueError,'team'): check(self.config)
+        project.write_text('DEVELOPMENT_TEAM = T95VDD3A4W;\n')
+        self.assertEqual(check(self.config)['status'],'passed')
+
+    def test_declared_apple_team_rejects_unbound_or_empty_project_team(self):
+        project=self.root/'App.xcodeproj/project.pbxproj'
+        project.parent.mkdir()
+        self.config.data['components']=[{'id':'app','kind':'macos','path':'.','project':'App.xcodeproj'}]
+        self.config.data['release']['macos']={'team_id':'T95VDD3A4W'}
+        for content in ('CODE_SIGN_STYLE = Automatic;\n','DEVELOPMENT_TEAM = "";\n'):
+            with self.subTest(content=content):
+                project.write_text(content)
+                with self.assertRaisesRegex(ValueError,'team'): check(self.config)
