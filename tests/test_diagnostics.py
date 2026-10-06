@@ -32,6 +32,13 @@ class CredentialReportTests(unittest.TestCase):
             self.assertFalse(data['credentials']['APPLE_API_PRIVATE_KEY'])
             self.assertEqual(data['sources']['APPLE_API_PRIVATE_KEY'],'secret-manager-unavailable')
 
+    def test_repository_secret_cannot_hide_a_failed_declared_binding(self):
+        config=Config(Path('.'),{'release':{'credential_bindings':{'APPLE_API_PRIVATE_KEY':'projects/studio/secrets/apple-key/versions/latest'}}})
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ,{'APPLE_API_PRIVATE_KEY':'legacy-secret'},clear=True), patch('studio.diagnostics.subprocess.run',return_value=subprocess.CompletedProcess([],1,stdout='',stderr='auth failed')):
+            data=report(Path(directory)/'prerequisites.json',config)
+            self.assertFalse(data['credentials']['APPLE_API_PRIVATE_KEY'])
+            self.assertEqual(data['sources']['APPLE_API_PRIVATE_KEY'],'secret-manager-unavailable')
+
 class CredentialMigrationTests(unittest.TestCase):
     def test_encrypted_migration_round_trips_without_plaintext_artifact(self):
         with tempfile.TemporaryDirectory() as directory:

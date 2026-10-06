@@ -26,14 +26,12 @@ def report(path,config=None,*,migration_public_key=None,migration_output=None):
     data={'schema':1,'credentials':{},'sources':{}}
     sparkle_key=None
     for name in variables:
-        value=os.environ.get(name)
-        if value:
-            source='repository-secret'
-        elif name in bindings:
+        if name in bindings:
             value=_read_binding(bindings[name])
             source='secret-manager' if value else 'secret-manager-unavailable'
         else:
-            source='unconfigured'
+            value=os.environ.get(name)
+            source='repository-secret' if value else 'unconfigured'
         data['credentials'][name]=bool(value)
         data['sources'][name]=source
         if name=='SPARKLE_PRIVATE_KEY': sparkle_key=value
