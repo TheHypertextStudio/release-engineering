@@ -58,6 +58,13 @@ command previously returned success after Terraform failed. The runtime now
 propagates that failure. This attempt does not establish whether production
 infrastructure has drifted; the hosted workload identity must run a fresh plan.
 
+GitHub Actions was disabled on `TheHypertextStudio/release-engineering` until
+October 6, despite the repository API reporting Actions as enabled. A maintainer
+enabled it on the Actions page. The v0.1.4 tag predates that change, so its
+automatic tag workflow did not run. Maintainers ran CI on the exact tag and
+published its verified archive manually. Automatic push and pull-request
+triggers still need a hosted smoke run before they count as accepted.
+
 ## Open acceptance
 
 The first signed Curfew candidate must pass hosted validation, notarization,
