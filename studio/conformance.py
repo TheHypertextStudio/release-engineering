@@ -34,6 +34,11 @@ def check(config):
         path = root / name
         if path.name == 'project.pbxproj' and path.is_file():
             content=path.read_text()
+            team=config['release'].get('macos',{}).get('team_id')
+            if team:
+                teams=re.findall(r'(?m)^\s*"?(?:DEVELOPMENT_TEAM|DevelopmentTeam)"?\s*=\s*"?([^";]*?)"?\s*;',content)
+                if not teams or any(value.strip()!=team for value in teams):
+                    raise ValueError(f'Xcode signing team must match declared release team {team}: {name}')
             for match in re.finditer(r'"?repositoryURL"?\s*=\s*"https://github\.com/'+re.escape(SHARED)+r'\.git";\s*"?requirement"?\s*=\s*\{([^}]+)\}',content,re.S):
                 requirement=match.group(1)
                 if not re.search(r'"?kind"?\s*=\s*"?revision"?;',requirement) or not re.search(r'"?revision"?\s*=\s*"'+lock['revision']+r'";',requirement):
