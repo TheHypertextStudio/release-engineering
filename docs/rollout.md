@@ -46,7 +46,11 @@ phase isolation. The live grants now bind each account to a fixed provider
 phase. The module maps that phase separately from repository identity. Review
 also corrected target entitlement overrides and stale Swift resolution pins.
 The actual Developer ID archive is blocked by missing App Groups profiles.
-Apple registration and profile creation require the pending user confirmation.
+Apple Developer Support accepted case 102987990794 on October 6, 2026 to
+investigate the Curfew identifiers previously provisioned under Personal Team
+39AB9DY3K8. Registration and company-team profile creation await Apple's
+guidance. Do not remove the existing identifiers or change Curfew's bundle IDs
+while that case is open.
 
 ## Open acceptance
 
