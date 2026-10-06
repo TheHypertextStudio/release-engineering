@@ -56,14 +56,22 @@ On October 6, a local Curfew production plan could not read its GCS state
 because Google authentication returned `invalid_rapt`. The shared provision
 command previously returned success after Terraform failed. The runtime now
 propagates that failure. This attempt does not establish whether production
-infrastructure has drifted; the hosted workload identity must run a fresh plan.
+infrastructure has drifted. A fresh plan must run after Google authentication
+is restored.
 
 GitHub Actions was disabled on `TheHypertextStudio/release-engineering` until
 October 6, despite the repository API reporting Actions as enabled. A maintainer
 enabled it on the Actions page. The v0.1.4 tag predates that change, so its
 automatic tag workflow did not run. Maintainers ran CI on the exact tag and
 published its verified archive manually. Automatic push and pull-request
-triggers still need a hosted smoke run before they count as accepted.
+triggers passed hosted smoke runs on [PR #2](https://github.com/TheHypertextStudio/release-engineering/pull/2).
+
+The first Curfew credential diagnostic only inspected GitHub secrets. It
+reported Apple credentials as absent while Curfew declared Secret Manager
+bindings. The shared diagnostic now checks those bindings with the product's
+staging workload identity. It records unavailable bindings without printing
+secret values. A fresh diagnostic on Curfew's updated pin must verify the live
+credentials before they count as ready.
 
 ## Open acceptance
 
