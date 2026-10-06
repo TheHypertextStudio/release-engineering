@@ -39,6 +39,24 @@ class LifecycleTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 run(load_config(path), 'provision')
 
+    def test_provision_stops_when_terraform_init_returns_failure(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            infrastructure = root / 'infrastructure'
+            infrastructure.mkdir()
+            (infrastructure / 'production.tfvars').write_text('')
+            path = root / 'studio.yaml'
+            path.write_text(CONFIG.replace('release:', 'infrastructure:\n  path: infrastructure\n  variable_files:\n    production: production.tfvars\nrelease:'))
+            calls = []
+
+            def failed_init(argv, cwd):
+                calls.append(argv)
+                return 1
+
+            with self.assertRaises(RuntimeError):
+                run(load_config(path), 'provision', env='production', runner=failed_init)
+            self.assertEqual(calls, [['terraform', 'init', '-input=false']])
+
     def test_native_check_runs_real_process_in_component_directory(self):
         import sys
         with tempfile.TemporaryDirectory() as root:

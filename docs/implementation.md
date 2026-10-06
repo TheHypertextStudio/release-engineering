@@ -23,6 +23,9 @@ Commands run native tools using argument arrays and explicit working directories
 The launcher downloads an immutable, SHA-256-verified Python zip application;
 Python 3.11 or newer is the only launcher runtime. Existing worktree preparation
 continues through the repository's `bootstrap worktree prepare` command.
+Provisioning requires an explicit environment and saved Terraform plan for
+apply. Terraform init, plan, and apply failures must return a nonzero lifecycle
+status; a failed backend authentication cannot be reported as a clean plan.
 
 The configuration defines product, repository, owner_repository, toolchain,
 components and release. A component declares id, kind, path, checks, optional

@@ -158,14 +158,19 @@ def provision(config, *, env, apply=False, runner=execute):
         raise ValueError("Provisioning requires an explicit environment variable file")
     if not (directory / variables).resolve().is_relative_to(directory) or not (directory / variables).is_file():
         raise ValueError("Provisioning variables must remain inside the infrastructure root")
-    runner(["terraform", "init", "-input=false"], cwd=directory)
+    def run_step(command):
+        result = runner(command, cwd=directory)
+        if isinstance(result, int) and result != 0:
+            raise RuntimeError(f"Terraform {command[1]} failed with exit status {result}")
+
+    run_step(["terraform", "init", "-input=false"])
     plan = directory / f"{env}.tfplan"
     if not apply:
-        runner(["terraform", "plan", "-input=false", f"-var-file={variables}", f"-out={plan}"], cwd=directory)
+        run_step(["terraform", "plan", "-input=false", f"-var-file={variables}", f"-out={plan}"])
     else:
         if not plan.is_file():
             raise ValueError("Provisioning apply requires its reviewed saved plan")
-        runner(["terraform", "apply", "-input=false", str(plan)], cwd=directory)
+        run_step(["terraform", "apply", "-input=false", str(plan)])
 
 
 def _native_cli(tool, version):

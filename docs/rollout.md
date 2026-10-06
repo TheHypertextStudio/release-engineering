@@ -52,6 +52,12 @@ investigate the Curfew identifiers previously provisioned under Personal Team
 guidance. Do not remove the existing identifiers or change Curfew's bundle IDs
 while that case is open.
 
+On October 6, a local Curfew production plan could not read its GCS state
+because Google authentication returned `invalid_rapt`. The shared provision
+command previously returned success after Terraform failed. The runtime now
+propagates that failure. This attempt does not establish whether production
+infrastructure has drifted; the hosted workload identity must run a fresh plan.
+
 ## Open acceptance
 
 The first signed Curfew candidate must pass hosted validation, notarization,
