@@ -11,7 +11,7 @@ terraform {
 locals {
   phases = setunion(toset(["candidate", "promote"]), length(var.pin_update_credential_names) > 0 ? toset(["pins"]) : toset([]))
   workflow_conditions = {
-    candidate = "(assertion.event_name == 'push' || assertion.event_name == 'repository_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/candidate.yml@${var.tooling_revision}'"
+    candidate = "(((assertion.event_name == 'push' || assertion.event_name == 'repository_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/candidate.yml@${var.tooling_revision}') || (assertion.event_name == 'workflow_dispatch' && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/diagnose.yml@${var.tooling_revision}'))"
     promote   = "((assertion.event_name == 'workflow_dispatch' && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/promote.yml@${var.tooling_revision}') || ((assertion.event_name == 'schedule' || assertion.event_name == 'workflow_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/reconcile-store.yml@${var.tooling_revision}'))"
     pins      = "(assertion.event_name == 'schedule' || assertion.event_name == 'workflow_dispatch') && assertion.job_workflow_ref == '${var.tooling_repository}/.github/workflows/update-pins.yml@${var.tooling_revision}'"
   }

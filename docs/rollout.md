@@ -70,8 +70,10 @@ The first Curfew credential diagnostic only inspected GitHub secrets. It
 reported Apple credentials as absent while Curfew declared Secret Manager
 bindings. The shared diagnostic now checks those bindings with the product's
 staging workload identity. It records unavailable bindings without printing
-secret values. A fresh diagnostic on Curfew's updated pin must verify the live
-credentials before they count as ready.
+secret values. The candidate identity also admits the exact pinned diagnostic
+workflow when a maintainer invokes it on the default branch. Pull-request refs
+cannot assume that identity. A fresh diagnostic after Curfew adopts the new pin
+must verify the live credentials before they count as ready.
 
 ## Open acceptance
 
