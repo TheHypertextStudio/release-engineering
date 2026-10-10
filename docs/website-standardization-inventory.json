@@ -1,0 +1,511 @@
+{
+  "observed_at": "2026-10-10T23:11:26.023947+00:00",
+  "repositories": {
+    "release-engineering": {
+      "source_sha": "d2cc95ed85886e95e2e05cbae7c40285e6d8cc4f",
+      "branch": "codex/company-website-standardization",
+      "packages": {}
+    },
+    "curfew": {
+      "source_sha": "9e941cc59ffa88e3a8bc5279ca14fcb3fb9a9090",
+      "branch": "codex/company-website-standardization",
+      "packages": {
+        "web/package.json": {
+          "name": "curfew-web",
+          "packageManager": "pnpm@11.9.0",
+          "scripts": {
+            "build": "pnpm --filter @curfew/chrome-extension build",
+            "test": "pnpm --filter @curfew/license-worker test && pnpm --filter @curfew/chrome-extension test",
+            "typecheck": "pnpm --filter @curfew/license-worker typecheck && pnpm --filter @curfew/chrome-extension typecheck"
+          }
+        }
+      }
+    },
+    "logdate-web": {
+      "source_sha": "098f641828fc59b00481da230079ba18a0365ece",
+      "branch": "codex/company-website-standardization",
+      "packages": {
+        "package.json": {
+          "name": "logdate",
+          "packageManager": "pnpm@10.30.0",
+          "engines": {
+            "node": ">=22",
+            "pnpm": ">=10"
+          },
+          "scripts": {
+            "dev": "turbo run dev --filter=@logdate/web",
+            "build": "TURBO_TELEMETRY_DISABLED=1 NEXT_TELEMETRY_DISABLED=1 turbo run build --filter=@logdate/web",
+            "start": "turbo run start --filter=@logdate/web",
+            "lint": "TURBO_TELEMETRY_DISABLED=1 NEXT_TELEMETRY_DISABLED=1 turbo run lint --filter=@logdate/web",
+            "docs:coverage": "typedoc --options typedoc.coverage.json",
+            "test:e2e": "playwright test",
+            "perf:budgets": "node ./scripts/check-performance-budgets.mjs",
+            "perf:lighthouse": "node ./scripts/run-lighthouse.mjs",
+            "perf:analyze": "turbo run analyze --filter=@logdate/web",
+            "perf:summary": "node ./scripts/write-performance-summary.mjs",
+            "quality": "turbo run lint test:e2e perf:budgets perf:lighthouse perf:summary --continue"
+          },
+          "devDependencies": {
+            "@lhci/cli": "catalog:",
+            "@playwright/test": "catalog:",
+            "turbo": "catalog:",
+            "typedoc": "^0.28.19"
+          }
+        },
+        "apps/web/package.json": {
+          "name": "@logdate/web",
+          "scripts": {
+            "dev": "portless logdate next dev",
+            "build": "next build",
+            "start": "next start",
+            "start:ci": "next start --hostname 127.0.0.1 --port 3711",
+            "lint": "eslint .",
+            "analyze": "next experimental-analyze --output",
+            "dal:fingerprint": "node scripts/extract-signing-fingerprint.mjs"
+          },
+          "dependencies": {
+            "@emotion/react": "^11.14.0",
+            "@emotion/styled": "^11.14.1",
+            "@logdate/cloud-api-client": "workspace:*",
+            "@logdate/lexicon-types": "workspace:*",
+            "@mui/icons-material": "^9.0.0",
+            "@mui/material": "^9.0.0",
+            "@vercel/analytics": "catalog:",
+            "@vercel/speed-insights": "catalog:",
+            "next": "catalog:",
+            "react": "catalog:",
+            "react-dom": "catalog:"
+          },
+          "devDependencies": {
+            "@tailwindcss/postcss": "catalog:",
+            "@types/node": "catalog:",
+            "@types/react": "catalog:",
+            "@types/react-dom": "catalog:",
+            "eslint": "catalog:",
+            "eslint-config-next": "catalog:",
+            "portless": "catalog:",
+            "tailwindcss": "catalog:",
+            "typescript": "catalog:"
+          }
+        }
+      }
+    },
+    "athena-web": {
+      "source_sha": "6f679a6a5bbd2cf85f71bbeba54e9e194f13b3b6",
+      "branch": "codex/company-website-standardization",
+      "packages": {
+        "package.json": {
+          "name": "@docket/root",
+          "packageManager": "pnpm@11.9.0",
+          "engines": {
+            "node": ">=24.15 <27",
+            "pnpm": ">=11.0.0"
+          },
+          "scripts": {
+            "build": "dotenv -e .env.local -- env NODE_ENV=production turbo run build",
+            "dev": "dotenv -e .env.local -- turbo run dev",
+            "dev:stack": "sh scripts/dev-stack.sh",
+            "lint": "turbo run lint --concurrency=2 && pnpm complexity:check",
+            "lint:staged": "lint-staged",
+            "lint:fix": "turbo run lint:fix",
+            "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+            "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+            "typecheck": "turbo run typecheck typecheck:repo",
+            "typecheck:repo": "tsc --noEmit",
+            "test": "turbo run test:coverage test:tooling --concurrency=2",
+            "test:tooling": "vitest run repo-tests",
+            "test:watch": "turbo run test:watch",
+            "test:coverage": "turbo run test:coverage",
+            "test:e2e": "turbo run test:e2e",
+            "oauth:test:postgres": "scripts/run-oauth-postgres-acceptance.sh",
+            "test:release": "scripts/run-release-acceptance.sh",
+            "clean": "turbo run clean && rm -rf .turbo node_modules",
+            "ci:gate-policy": "tsx scripts/ci-gate-policy.ts",
+            "complexity:ledger": "tsx scripts/complexity-ledger.ts",
+            "complexity:check": "tsx scripts/complexity-ledger.ts --check",
+            "secret-scan": "tsx scripts/secret-scan.ts",
+            "secret:paste": "tsx scripts/set-secret-from-clipboard.ts",
+            "notion:webhook-token": "tsx scripts/notion-webhook-token.ts",
+            "sync:failure": "tsx scripts/sync-failure.ts",
+            "launch:record": "tsx scripts/launch-record.ts",
+            "launch:scorecard": "tsx scripts/launch-scorecard.ts",
+            "launch:verify-native-auth": "tsx scripts/native-passkey-origin-verify.ts",
+            "launch:verify-prod": "tsx scripts/production-verify.ts",
+            "launch:verify-docs": "tsx scripts/docs-live-verify.ts",
+            "placeholders:inventory": "tsx scripts/placeholder-inventory.ts",
+            "placeholders:check": "tsx scripts/placeholder-inventory.ts --check",
+            "icons": "pnpm --filter @docket/brand icons",
+            "glyphs:generate": "node scripts/generate-entity-glyph-catalog.mjs",
+            "glyphs:verify-bundle": "node scripts/verify-entity-glyph-bundle.mjs",
+            "bootstrap": "./bootstrap",
+            "bootstrap:project": "tsx scripts/bootstrap.ts",
+            "bootstrap:local": "scripts/bootstrap-local",
+            "bootstrap:verify": "scripts/bootstrap-verify",
+            "integrations": "tsx scripts/integrations-setup.ts",
+            "phone:verify:canary": "tsx scripts/twilio-verify-canary.ts",
+            "linear-agent:sandbox-check": "tsx scripts/linear-agent-sandbox-check.ts",
+            "env:check": "tsx scripts/env-check.ts",
+            "domain:check": "tsx scripts/domain-check.ts",
+            "docs:check": "tsx scripts/docs-check.ts",
+            "workspaces:provision": "tsx scripts/provision-workspaces.ts",
+            "sunsama:import": "tsx scripts/import-sunsama.ts",
+            "check:context-strategy": "tsx scripts/context-strategy-check.ts",
+            "doctor": "tsx scripts/doctor.ts",
+            "rollback": "tsx scripts/rollback.ts",
+            "scheduler:setup": "dotenv -e .env.local -- tsx scripts/scheduler-setup.ts",
+            "billing:launch-audit": "dotenv -e .env.local -- tsx scripts/billing-launch-audit.ts",
+            "proxy:install": "portless service install",
+            "proxy:status": "portless service status",
+            "proxy:uninstall": "portless service uninstall",
+            "db:up": "dotenv -e .env.local -- tsx scripts/db-up.ts",
+            "db:down": "docker compose down",
+            "db:reset": "dotenv -e .env.local -- tsx scripts/db-reset.ts",
+            "db:seed:staff": "dotenv -e .env.local -- tsx scripts/seed-staff.ts",
+            "db:generate": "dotenv -e .env.local -- turbo run db:generate --filter=@docket/db",
+            "db:migrate": "dotenv -e .env.local -- turbo run db:migrate --filter=@docket/db",
+            "db:studio": "dotenv -e .env.local -- turbo run db:studio --filter=@docket/db",
+            "search:backfill": "dotenv -e .env.local -- tsx scripts/search-backfill.ts",
+            "search:repair": "dotenv -e .env.local -- tsx scripts/search-backfill.ts --repair",
+            "search:process": "dotenv -e .env.local -- tsx scripts/search-process-jobs.ts",
+            "prepare": "if [ -f scripts/install-git-guardrails.sh ]; then sh scripts/install-git-guardrails.sh; fi && (git update-index --skip-worktree .env.local 2>/dev/null || true)",
+            "dev:doctor": "bash scripts/dev-stack.sh doctor"
+          },
+          "devDependencies": {
+            "@clack/prompts": "^1.7.0",
+            "@docket/dev-topology": "workspace:*",
+            "@docket/test-utils": "workspace:*",
+            "@docket/tsconfig": "workspace:*",
+            "@eslint/js": "catalog:",
+            "@types/node": "catalog:",
+            "@vitejs/plugin-react": "catalog:",
+            "@vitest/coverage-v8": "catalog:",
+            "dotenv-cli": "^11.0.0",
+            "eslint": "catalog:",
+            "lint-staged": "^17.0.8",
+            "portless": "catalog:",
+            "postgres": "catalog:",
+            "prettier": "3.9.5",
+            "prettier-plugin-tailwindcss": "^0.8.0",
+            "tsx": "^4.23.1",
+            "turbo": "^2.10.4",
+            "typescript": "catalog:",
+            "typescript-eslint": "catalog:",
+            "vite": "catalog:",
+            "vitest": "catalog:"
+          }
+        },
+        "apps/web/package.json": {
+          "name": "@docket/web",
+          "scripts": {
+            "build": "NODE_OPTIONS=--max-old-space-size=4096 next build && tsx ../../packages/service-worker/bin/build.ts --app-root=. --production",
+            "dev": "portless run --force",
+            "dev:app": "tsx ../../scripts/portless-env.ts sh -c 'tsx ../../packages/service-worker/bin/build.ts --app-root=. && next dev'",
+            "start": "next start",
+            "typecheck": "tsc --noEmit",
+            "lint": "NODE_OPTIONS=--max-old-space-size=3072 eslint . --cache --cache-location ../../node_modules/.cache/eslint/web --cache-strategy content",
+            "lint:fix": "NODE_OPTIONS=--max-old-space-size=3072 eslint . --fix --cache --cache-location ../../node_modules/.cache/eslint/web --cache-strategy content",
+            "test": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--no-experimental-webstorage\" vitest run",
+            "test:watch": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--no-experimental-webstorage\" vitest",
+            "test:coverage": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--no-experimental-webstorage\" vitest run --coverage --exclude tests/components/canvas/graph-layout-performance.test.ts",
+            "test:performance": "NODE_OPTIONS=\"${NODE_OPTIONS:+$NODE_OPTIONS }--no-experimental-webstorage\" vitest run tests/components/canvas/graph-layout-performance.test.ts --maxWorkers=1",
+            "test:e2e": "playwright test",
+            "test:e2e:release": "playwright test e2e/release e2e/work/daily-planning-flow.spec.ts e2e/work/daily-planning-activity.spec.ts e2e/work/daily-planning-day-review.spec.ts e2e/work/daily-planning-short-blocks.spec.ts --workers=1",
+            "clean": "rm -rf .next .turbo *.tsbuildinfo",
+            "test:e2e:evidence": "E2E_EVIDENCE=1 playwright test"
+          },
+          "dependencies": {
+            "@better-auth/passkey": "catalog:",
+            "@dnd-kit/collision": "catalog:",
+            "@dnd-kit/dom": "catalog:",
+            "@dnd-kit/react": "catalog:",
+            "@docket/api": "workspace:*",
+            "@docket/athena": "workspace:*",
+            "@docket/automation": "workspace:*",
+            "@docket/connections": "workspace:*",
+            "@docket/env": "workspace:*",
+            "@docket/identity-access": "workspace:*",
+            "@docket/integrations": "workspace:*",
+            "@docket/markdown-tree": "workspace:*",
+            "@docket/notifications": "workspace:*",
+            "@docket/planning": "workspace:*",
+            "@docket/ui": "workspace:*",
+            "@docket/work": "workspace:*",
+            "@emotion/cache": "^11.14.0",
+            "@emotion/server": "^11.11.0",
+            "@js-temporal/polyfill": "^0.5.1",
+            "@material-symbols/font-400": "0.47.1",
+            "@mui/material-nextjs": "^9.1.1",
+            "@tanstack/react-query": "^5.101.4",
+            "@tanstack/react-virtual": "^3.14.6",
+            "@tiptap/core": "3.27.3",
+            "@tiptap/extension-code-block": "3.27.3",
+            "@tiptap/extension-image": "3.27.3",
+            "@tiptap/extension-link": "3.27.3",
+            "@tiptap/extension-list": "3.27.3",
+            "@tiptap/extension-placeholder": "3.27.3",
+            "@tiptap/extension-table": "3.27.3",
+            "@tiptap/extension-underline": "3.27.3",
+            "@tiptap/markdown": "3.27.3",
+            "@tiptap/pm": "3.27.3",
+            "@tiptap/react": "3.27.3",
+            "@tiptap/starter-kit": "3.27.3",
+            "@xyflow/react": "^12.11.5",
+            "better-auth": "catalog:",
+            "dagre": "^0.8.5",
+            "highlight.js": "^11.11.1",
+            "hono": "catalog:",
+            "idb-keyval": "^6.3.0",
+            "lowlight": "^3.3.0",
+            "maplibre-gl": "^6.3.0",
+            "marked": "17.0.6",
+            "next": "catalog:",
+            "react": "catalog:",
+            "react-dom": "catalog:",
+            "zod": "catalog:"
+          },
+          "devDependencies": {
+            "@docket/brand": "workspace:*",
+            "@docket/eslint-config": "workspace:*",
+            "@docket/test-utils": "workspace:*",
+            "@docket/tsconfig": "workspace:*",
+            "@modelcontextprotocol/sdk": "catalog:",
+            "@playwright/test": "^1.61.1",
+            "@tailwindcss/postcss": "^4.3.2",
+            "@testing-library/dom": "^10.4.1",
+            "@testing-library/jest-dom": "^6.9.1",
+            "@testing-library/react": "^16.3.2",
+            "@testing-library/user-event": "^14.6.1",
+            "@types/dagre": "^0.7.54",
+            "@types/react": "catalog:",
+            "@types/react-dom": "catalog:",
+            "@vitejs/plugin-react": "catalog:",
+            "axe-core": "^4.13.0",
+            "jsdom": "^29.1.1",
+            "sharp": "^0.35.3",
+            "tailwindcss": "^4.3.2",
+            "tsx": "^4.23.1",
+            "tw-animate-css": "^1.4.0",
+            "vite": "catalog:",
+            "vitest": "catalog:"
+          }
+        }
+      }
+    },
+    "website": {
+      "source_sha": "181825c88f78af3d823bff8205879aa2f0ca25a0",
+      "branch": "codex/company-website-standardization",
+      "packages": {
+        "package.json": {
+          "name": "@hypertextstudio/website",
+          "packageManager": "pnpm@10.33.3",
+          "engines": {
+            "node": ">=24",
+            "pnpm": ">=10"
+          },
+          "scripts": {
+            "predev": "bash scripts/portless-reset.sh",
+            "dev": "portless run astro dev",
+            "dev:astro": "astro dev",
+            "build": "bash scripts/build.sh",
+            "preview": "astro preview",
+            "astro": "astro",
+            "check": "astro check",
+            "format": "prettier --write .",
+            "format:check": "prettier --check .",
+            "lint": "eslint . --max-warnings=0",
+            "lint:fix": "eslint . --fix",
+            "pretypecheck": "astro sync",
+            "typecheck": "astro check && tsc --noEmit",
+            "types:workers": "wrangler types workers/generated/www.d.ts --env www --env-interface WwwEnv --env-file /dev/null --include-runtime false && wrangler types workers/generated/poem.d.ts --env poem --env-interface PoemEnv --env-file /dev/null --include-runtime false && wrangler types workers/generated/webmention.d.ts --env webmention --env-interface WebmentionEnv --env-file /dev/null --include-runtime false && wrangler types workers/generated/micropub.d.ts --env micropub --env-interface MicropubEnv --env-file /dev/null --include-runtime false && wrangler types workers/generated/oembed.d.ts --env oembed --env-interface OembedEnv --env-file /dev/null --include-runtime false",
+            "typecheck:workers": "pnpm run types:workers && tsc -p workers/tsconfig.json",
+            "test": "vitest run",
+            "test:workers": "node scripts/ci/run-worker-tests.mjs",
+            "test:e2e": "playwright test --project=chromium",
+            "test:e2e:all": "playwright test",
+            "test:artifact": "playwright test --config=playwright.artifact.config.ts",
+            "test:e2e:ui": "playwright test --ui",
+            "test:a11y": "playwright test --project=chromium --grep @a11y",
+            "test:install": "playwright install --with-deps",
+            "screenshots": "node scripts/screenshots.mjs",
+            "doctor": "bash scripts/doctor.sh"
+          },
+          "dependencies": {
+            "@astrojs/markdown-remark": "^7.2.4",
+            "@astrojs/mdx": "^7.0.8",
+            "@astrojs/sitemap": "^3.7.3",
+            "astro": "^7.2.9",
+            "microformats-parser": "^2.0.6"
+          },
+          "devDependencies": {
+            "@astrojs/check": "^0.9.10",
+            "@cloudflare/vitest-pool-workers": "^0.22.0",
+            "@cloudflare/workers-types": "^5.20260830.1",
+            "@playwright/test": "^1.62.1",
+            "@types/node": "^26.4.0",
+            "@typescript-eslint/parser": "^8.68.0",
+            "axe-playwright": "^2.2.2",
+            "eslint": "^10.9.1",
+            "eslint-plugin-astro": "^3.1.0",
+            "eslint-plugin-jsx-a11y": "^6.10.2",
+            "lint-staged": "^17.4.1",
+            "portless": "^0.15.6",
+            "prettier": "^3.9.6",
+            "prettier-plugin-astro": "^0.14.1",
+            "rehype-autolink-headings": "^7.1.0",
+            "rehype-slug": "^6.0.0",
+            "remark-gfm": "^4.0.1",
+            "sharp": "^0.35.4",
+            "tsx": "^4.23.13",
+            "typescript": "^6.0.3",
+            "vitest": "^4.1.11",
+            "wrangler": "^4.127.1"
+          }
+        }
+      }
+    }
+  },
+  "provider_access": {
+    "cloudflare": {
+      "status": "blocked",
+      "reason": "Authenticated Wrangler account is LVBT only; Studio account unavailable"
+    },
+    "vercel": {
+      "status": "available",
+      "scope": "williecubed-projects",
+      "projects": {
+        "logdate": "prj_iyDutZXg3jY8k4rUM5D5bmHIvXTT",
+        "docket": "prj_u16kLe9qHJSXFO1OoudnuNzYOfcY"
+      },
+      "production_recovery_targets": {
+        "logdate": {
+          "deployment_id": "dpl_Dve3XKcjzFVmCghUHW7pvGBnxYZL",
+          "url": "https://logdate-7vh6mbvpc-williecubed-projects.vercel.app"
+        },
+        "docket": {
+          "deployment_id": "dpl_7yPDwkuy3tVUcnGjAXG1ZLt5JVi5",
+          "url": "https://docket-mll7kmm35-williecubed-projects.vercel.app"
+        }
+      }
+    },
+    "mintlify": {
+      "status": "unverified",
+      "reason": "Pinned mint@4.2.854 local CLI installed and exercised; dashboard/API settings and deployment result remain unverified"
+    }
+  },
+  "surfaces": [
+    {
+      "id": "studio",
+      "repository": "TheHypertextStudio/website",
+      "path": ".",
+      "origin": "https://hypertext.studio",
+      "current_host": "Pages + supporting Workers",
+      "target_host": "Workers"
+    },
+    {
+      "id": "curfew-marketing",
+      "repository": "TheHypertextStudio/curfew",
+      "path": "landing",
+      "origin": "https://curfew.hypertext.studio",
+      "current_host": "Pages (source requires provider verification)",
+      "target_host": "Workers"
+    },
+    {
+      "id": "curfew-docs",
+      "repository": "TheHypertextStudio/curfew",
+      "path": "docs",
+      "origin": "https://curfew.hypertext.studio/docs",
+      "current_host": "Unverified: remote source says unpublished Mintlify, public setup guide landing/docs.html",
+      "target_host": "Mintlify"
+    },
+    {
+      "id": "logdate",
+      "repository": "WillieCubed/logdate-web",
+      "path": "apps/web",
+      "origin": "https://logdate.app",
+      "current_host": "Vercel",
+      "target_host": "Workers"
+    },
+    {
+      "id": "docket",
+      "repository": "TheHypertextStudio/athena-web",
+      "path": "apps/web",
+      "origin": "https://clearthedocket.com",
+      "current_host": "Vercel",
+      "target_host": "Workers"
+    },
+    {
+      "id": "docket-docs",
+      "repository": "TheHypertextStudio/athena-web",
+      "path": "apps/docs",
+      "origin": "https://clearthedocket.com/docs",
+      "current_host": "Mintlify",
+      "target_host": "Mintlify"
+    }
+  ],
+  "public_observations": [
+    {
+      "id": "studio",
+      "url": "https://hypertext.studio",
+      "status": 200,
+      "final_url": "https://hypertext.studio",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 411
+    },
+    {
+      "id": "curfew-marketing",
+      "url": "https://curfew.hypertext.studio",
+      "status": 200,
+      "final_url": "https://curfew.hypertext.studio",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 145
+    },
+    {
+      "id": "curfew-docs",
+      "url": "https://curfew.hypertext.studio/docs",
+      "status": 200,
+      "final_url": "https://curfew.hypertext.studio/docs",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 244
+    },
+    {
+      "id": "logdate",
+      "url": "https://logdate.app",
+      "status": 200,
+      "final_url": "https://logdate.app",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 749
+    },
+    {
+      "id": "docket",
+      "url": "https://clearthedocket.com",
+      "status": 200,
+      "final_url": "https://clearthedocket.com",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 4245
+    },
+    {
+      "id": "docket-docs",
+      "url": "https://clearthedocket.com/docs",
+      "status": 200,
+      "final_url": "https://clearthedocket.com/docs/guides/what-docket-is",
+      "content_type": "text/html; charset=utf-8",
+      "elapsed_ms": 3092
+    }
+  ],
+  "pending_evidence": [
+    "Cloudflare Studio account projects/routes/D1 deployment identities and usage",
+    "Mintlify dashboard project/domain/base path/source branch settings and entitlement",
+    "Provider error/latency/usage baselines",
+    "Production passkey/native association and authenticated journey baseline"
+  ],
+  "source_reconciliation": {
+    "curfew": "Current remote main uses landing/ and docs/. Existing primary checkout is ahead 25 and behind 110 with unrelated dirty Xcode project; do not modify it. Plan paths web/landing and web/docs refer to that divergent checkout.",
+    "curfew_docs": "Current remote Documentation/todos.md says docs/ Mintlify source is unpublished. Public /docs HTTP 200 does not prove Mintlify project/source/Git integration; reconcile provider before routing changes."
+  },
+  "shared_toolchain": {
+    "node": "24.20.0",
+    "pnpm": "11.9.0",
+    "mintlify_cli": "4.2.854",
+    "status": "Validated in shared tooling and packed consumer; product-wide adoption remains pending"
+  }
+}

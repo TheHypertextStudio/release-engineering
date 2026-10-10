@@ -16,7 +16,7 @@ class ProfileTests(unittest.TestCase):
         self.assertNotIn('--env',command)
     def test_package_build_produces_immutable_tarball(self):
         command=native_command({'kind':'pnpm','build':{'profile':'npm-package','output':'dist'}},'build')
-        self.assertEqual(command,['pnpm','pack','--outdir','dist'])
+        self.assertEqual(command,['pnpm','pack','--pack-destination','dist'])
     def test_binding_renderer_resolves_facts_and_blocks_unknown_expressions(self):
         self.assertEqual(render('${{ vars.API_URL }}/health',{'API_URL':'https://api.example'},'a'*40),'https://api.example/health')
         self.assertEqual(render("${{ vars.MISSING || 'false' }}",{},'a'*40),'false')

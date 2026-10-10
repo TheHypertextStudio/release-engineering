@@ -78,6 +78,13 @@ must verify the live credentials before they count as ready.
 
 ## Open acceptance
 
+Company website configuration and Mintlify standardization began October 10.
+The [website status record](website-standardization.md) contains scope, source
+reconciliation, provider access gaps, and local implementation evidence. The
+[website contract](websites.md) extends the existing lifecycle with prebuilt
+Workers site artifacts. No company website cutover or legacy hosting retirement
+has been accepted. Mintlify remains the product documentation platform.
+
 The first signed Curfew candidate must pass hosted validation, notarization,
 installation and launch on supported Macs. The reviewer must inspect its
 shipping bytes and record licensed delivery and update evidence. A staging or
