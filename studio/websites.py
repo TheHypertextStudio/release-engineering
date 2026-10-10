@@ -4,8 +4,92 @@ from fnmatch import fnmatchcase
 import os
 from pathlib import Path
 import re
-import shutil
 from urllib.parse import urlsplit
+
+
+# This bounded profile deliberately excludes filesystem/build options that need
+# their own artifact contract. New Wrangler fields must be reviewed before use.
+SITE_FIELDS = set('''$schema account_id name main compatibility_date compatibility_flags
+no_bundle find_additional_modules preserve_file_names base_dir rules assets env route routes
+workers_dev preview_urls vars kv_namespaces r2_buckets d1_databases services durable_objects
+vectorize hyperdrive queues analytics_engine_datasets workflows pipelines artifacts
+dispatch_namespaces secrets_store_secrets ratelimits migrations exports observability logpush
+placement limits tail_consumers version_metadata keep_vars triggers ai browser
+wasm_modules text_blobs data_blobs upload_source_maps'''.split())
+RESOURCE_KEYS = {
+    'kv_namespaces': ('kv', ('id',)), 'r2_buckets': ('r2', ('bucket_name',)),
+    'd1_databases': ('d1', ('database_id',)), 'services': ('worker', ('service',)),
+    'tail_consumers': ('worker', ('service',)), 'vectorize': ('vectorize', ('index_name',)),
+    'hyperdrive': ('hyperdrive', ('id',)),
+    'analytics_engine_datasets': ('analytics', ('dataset',)),
+    'workflows': ('workflow', ('name',)), 'artifacts': ('artifacts', ('namespace',)),
+    'dispatch_namespaces': ('dispatch', ('namespace',)),
+    'secrets_store_secrets': ('secret', ('store_id', 'secret_name')),
+    'ratelimits': ('ratelimit', ('namespace_id',)),
+}
+
+
+def _resource_identities(binding):
+    identities = set()
+
+    def rows(value):
+        if not isinstance(value, list) or any(not isinstance(row, dict) for row in value):
+            raise ValueError('Website resource bindings require explicit identity arrays')
+        return value
+
+    def identity(kind, row, fields):
+        values = tuple(row.get(key) for key in fields)
+        if any(not isinstance(value, str) or not value for value in values):
+            raise ValueError('Website resource bindings require explicit provider identities')
+        identities.add((kind, *(value.casefold() for value in values)))
+
+    for key, (kind, fields) in RESOURCE_KEYS.items():
+        for row in rows(binding.get(key, [])):
+            identity(kind, row, fields)
+    for row in rows(binding.get('pipelines', [])):
+        identity('pipeline', {'id': row.get('stream', row.get('pipeline'))}, ('id',))
+    queues = binding.get('queues', {})
+    durable = binding.get('durable_objects', {})
+    if not isinstance(queues, dict) or not isinstance(durable, dict):
+        raise ValueError('Website resource bindings require explicit mappings')
+    for row in rows(queues.get('producers', [])) + rows(queues.get('consumers', [])):
+        identity('queue', row, ('queue',))
+        if row.get('dead_letter_queue'):
+            identity('queue', row, ('dead_letter_queue',))
+    for row in rows(durable.get('bindings', [])):
+        # No script_name means the current, already isolated Worker namespace.
+        identity('durable', {**row, 'script_name': row.get('script_name', binding['name'])},
+                 ('script_name', 'class_name'))
+        if row.get('script_name'):
+            identity('worker', row, ('script_name',))
+    return identities
+
+
+def _freeze_files(binding, root, entry, assets):
+    unsupported = set(binding) - SITE_FIELDS
+    if unsupported or binding.get('upload_source_maps'):
+        raise ValueError('Workers site configuration contains unsupported build or filesystem options')
+    if 'base_dir' in binding:
+        binding['base_dir'] = str(_inside(root, binding['base_dir'], 'Module root', directory=True))
+    # Explicit CLI main/assets win over configuration, but remove ambiguous
+    # relative values before Wrangler resolves the copied configuration.
+    if 'main' in binding:
+        binding['main'] = str(entry)
+    if isinstance(binding.get('assets'), dict) and 'directory' in binding['assets']:
+        binding['assets']['directory'] = str(assets)
+    for key in ('wasm_modules', 'text_blobs', 'data_blobs'):
+        if key not in binding:
+            continue
+        if not isinstance(binding[key], dict):
+            raise ValueError('File bindings must identify files inside the archive')
+        binding[key] = {name: str(_inside(root, relative, 'File binding'))
+                        for name, relative in binding[key].items()}
+    for rule in binding.get('rules', []):
+        if not isinstance(rule, dict) or not isinstance(rule.get('globs'), list):
+            raise ValueError('Module rules must identify paths inside the archive')
+        if any(not isinstance(glob, str) or Path(glob).is_absolute() or '..' in Path(glob).parts
+               or '\\' in glob for glob in rule['globs']):
+            raise ValueError('Module rules must stay inside the archive')
 
 
 def _hosts(config):
@@ -75,6 +159,7 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
         raise ValueError('Website environments must be mappings')
     names = []
     routes = {}
+    scopes = {}
     for scope in ('staging', 'production'):
         selected = declared.get(scope)
         binding = environments.get(selected, {}) if isinstance(selected, str) else {}
@@ -90,14 +175,25 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
         effective = {key: binding.get(key, config.get(key, [] if key == 'routes' else None))
                      for key in ('routes', 'route')}
         routes[scope] = _hosts(effective)
+        scopes[scope] = binding
     if names[0] == names[1] or environment not in ('staging', 'production'):
         raise ValueError('Website environments must be isolated')
     for host in routes['staging']:
         if '*' in host or any(fnmatchcase(host, production) for production in routes['production']):
             raise ValueError('Staging route hosts must be explicitly isolated from production')
+    for key in (*RESOURCE_KEYS, 'queues', 'durable_objects', 'pipelines'):
+        if (key in config or any(key in binding for binding in scopes.values())) and any(
+                key not in binding for binding in scopes.values()):
+            raise ValueError('Website resources require explicit environment bindings')
+    production = _resource_identities(scopes['production']) | {('worker', names[1])}
+    if _resource_identities(scopes['staging']) & production:
+        raise ValueError('Staging write resources must be isolated from production')
+    _freeze_files(config, root, entry, assets)
+    for binding in scopes.values():
+        _freeze_files(binding, root, entry, assets)
     target = root / '.studio-site' / origin.name
     target.parent.mkdir(exist_ok=True)
-    shutil.copyfile(origin, target)
+    target.write_text(json.dumps(config, sort_keys=True) + '\n')
     command = ['deploy', str(entry), '--no-bundle', '--autoconfig=false', '--config', str(target),
                '--assets', str(assets), '--env', declared[environment], '--env-file', os.devnull]
     for variable, value in [('STUDIO_SOURCE_SHA', metadata['sourceSha']),

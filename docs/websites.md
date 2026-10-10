@@ -42,6 +42,12 @@ The existing assembler supports website-only declarations without a native Mac c
 
 The Workers site adapter passes the explicit entrypoint and asset directory to the pinned Wrangler CLI with bundling and autoconfiguration disabled. It disables implicit local environment-file loading. Candidate-relative paths and symlinks cannot escape the reviewed input. The existing Pages, Vercel, and standalone Worker adapters remain available.
 
+Module roots and legacy file bindings are validated inside the extracted archive and rebased before Wrangler reads the copied configuration. Additional-module rules stay within that root. The site profile accepts an explicit set of reviewed Wrangler fields; unsupported filesystem/build options, including custom TypeScript configuration, Workers Sites, containers, unsafe bindings, and source-map uploads, fail before deployment. Add support through a reviewed artifact contract rather than bypassing the guard.
+
+Declare resource bindings explicitly in both environments, using an empty array or mapping when that environment intentionally has none. Preview D1, R2, KV, queues (including dead-letter queues), services, external Durable Objects, Vectorize, Hyperdrive, workflows, datasets, pipelines, artifacts, dispatch namespaces, secret-store references, rate limiters, and tail consumers must have distinct provider identities from production. Worker-local Durable Objects remain isolated by the distinct Worker names. The adapter provides no shared-resource exception: a future exception needs demonstrated restricted access and a reviewed policy. These identity guards do not establish the permissions of provider credentials or the isolation of arbitrary backend URLs; verify those separately before preview acceptance.
+
+Run `STUDIO_NATIVE_WORKERS_TESTS=1 python3 -m unittest discover -s tests -p 'test_workers_site*.py' -v` for the pinned Wrangler packaging check. It uses `--dry-run` and asserts that candidate-relative chunks retain their bytes and outside files are excluded. It never deploys to a provider account. Framework/workerd and authenticated provider acceptance remain separate gates.
+
 After hashing, deployment injects:
 
 - `STUDIO_SOURCE_SHA`: the reviewed source commit.
