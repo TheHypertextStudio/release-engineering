@@ -337,7 +337,8 @@ def promote_component(config, candidate, component, environment):
                 output=root/'.vercel'/'output'; output.mkdir(parents=True)
                 for path in list(root.iterdir()):
                     if path.name!='.vercel': shutil.move(str(path),output/path.name)
-            return deploy_site(component,matches[0],environment,root,config['toolchain'])
+            website_artifact={**matches[0],'candidate_id':candidate.data['id']}
+            return deploy_site(component,website_artifact,environment,root,config['toolchain'],bindings_root=candidate.path.parent)
     if component['kind'] == 'macos':
         if environment != 'production':
             raise CandidateError('Shipping identities do not deploy to staging')

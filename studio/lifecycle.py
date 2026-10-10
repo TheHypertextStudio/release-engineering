@@ -37,7 +37,7 @@ def native_command(component, action):
                 raise ConfigError('Worker build requires an explicit environment')
             return ['pnpm','exec','wrangler','deploy','--dry-run','--config',deploy['config'],'--outdir',build['output'],*(['--env',binding] if binding!='default' else [])]
         if profile=='npm-package':
-            return ['pnpm','pack','--outdir',build['output']]
+            return ['pnpm','pack','--pack-destination',build['output']]
         if profile=='vercel-prebuilt':
             return ['pnpm','dlx','vercel@'+str(build.get('vercel_version','50.28.1')),'build','--yes','--prod']
         if kind == 'swiftpm':
