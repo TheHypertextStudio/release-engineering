@@ -79,6 +79,110 @@ class WorkersSiteTests(unittest.TestCase):
             self.deploy('staging')
         self.assertEqual(self.calls, [])
 
+    def test_module_roots_and_blob_inputs_cannot_leave_the_archive(self):
+        for key, value in [('base_dir', str(self.bindings)), ('base_dir', '../candidate'),
+                           ('text_blobs', {'TEXT': str(self.bindings / 'wrangler.json')}),
+                           ('data_blobs', {'DATA': '../candidate/wrangler.json'}),
+                           ('wasm_modules', {'WASM': '/tmp/unreviewed.wasm'})]:
+            with self.subTest(key=key, value=value):
+                config = copy.deepcopy(self.config)
+                config[key] = value
+                (self.bindings / 'wrangler.json').write_text(json.dumps(config))
+                with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'archive'):
+                    self.deploy()
+        self.assertEqual(self.calls, [])
+
+    def test_relative_module_and_blob_paths_keep_artifact_semantics(self):
+        (self.build / 'message.txt').write_text('reviewed text')
+        self.config.update(base_dir='.', find_additional_modules=True,
+                           rules=[{'type': 'ESModule', 'globs': ['**/*.js']}],
+                           text_blobs={'TEXT': 'message.txt'})
+        self.write_config()
+        with patch('studio.providers.probe'):
+            self.deploy()
+        command = self.calls[0]
+        copied = json.loads(Path(command[command.index('--config') + 1]).read_text())
+        self.assertEqual(Path(copied['base_dir']), self.build)
+        self.assertEqual(Path(copied['text_blobs']['TEXT']).read_text(), 'reviewed text')
+        self.assertEqual(json.loads((self.bindings / 'wrangler.json').read_text()), self.config)
+
+    def test_unsupported_build_and_filesystem_options_fail_before_deployment(self):
+        for key, value in [('tsconfig', '/tmp/tsconfig.json'), ('site', {'bucket': '/tmp'}),
+                           ('unsafe', {'bindings': []}), ('containers', []),
+                           ('upload_source_maps', True)]:
+            with self.subTest(key=key):
+                self.config[key] = value
+                self.write_config()
+                with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'unsupported'):
+                    self.deploy()
+                del self.config[key]
+        self.assertEqual(self.calls, [])
+
+    def test_staging_cannot_share_production_write_resource_identities(self):
+        resources = [
+            ('d1_databases', [{'binding': 'DB', 'database_id': 'prod-db'}]),
+            ('r2_buckets', [{'binding': 'BUCKET', 'bucket_name': 'prod-bucket'}]),
+            ('kv_namespaces', [{'binding': 'KV', 'id': 'prod-kv'}]),
+            ('services', [{'binding': 'API', 'service': 'prod-api'}]),
+            ('services', [{'binding': 'SELF', 'service': 'site-production'}]),
+            ('vectorize', [{'binding': 'INDEX', 'index_name': 'prod-index'}]),
+            ('hyperdrive', [{'binding': 'DB', 'id': 'prod-hyperdrive'}]),
+            ('queues', {'producers': [{'binding': 'QUEUE', 'queue': 'prod-queue'}]}),
+            ('queues', {'consumers': [{'queue': 'prod-queue'}]}),
+            ('durable_objects', {'bindings': [{'name': 'DO', 'class_name': 'Cache', 'script_name': 'prod-cache'}]}),
+            ('analytics_engine_datasets', [{'binding': 'METRICS', 'dataset': 'prod-metrics'}]),
+            ('workflows', [{'binding': 'JOB', 'name': 'prod-job', 'class_name': 'Job'}]),
+            ('pipelines', [{'binding': 'PIPE', 'stream': 'prod-stream'}]),
+            ('artifacts', [{'binding': 'FILES', 'namespace': 'prod-files'}]),
+            ('dispatch_namespaces', [{'binding': 'DISPATCH', 'namespace': 'prod-dispatch'}]),
+            ('secrets_store_secrets', [{'binding': 'KEY', 'store_id': 'store', 'secret_name': 'prod-key'}]),
+            ('ratelimits', [{'name': 'LIMIT', 'namespace_id': '123', 'simple': {'limit': 10, 'period': 60}}]),
+            ('tail_consumers', [{'service': 'prod-tail'}]),
+        ]
+        for key, value in resources:
+            with self.subTest(resource=key, value=value):
+                config = copy.deepcopy(self.config)
+                for scope in ['staging', 'production']:
+                    config['env'][scope][key] = value
+                (self.bindings / 'wrangler.json').write_text(json.dumps(config))
+                with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'isolated'):
+                    self.deploy('staging')
+        self.assertEqual(self.calls, [])
+
+    def test_resources_require_explicit_environment_bindings_and_identities(self):
+        for config in [
+            {**self.config, 'd1_databases': [{'binding': 'DB', 'database_id': 'prod-db'}]},
+            {**self.config, 'env': {'staging': self.config['env']['staging'],
+                                  'production': {**self.config['env']['production'], 'r2_buckets': [{'binding': 'CACHE', 'bucket_name': 'prod-cache'}]}}},
+            {**self.config, 'env': {'staging': {**self.config['env']['staging'], 'kv_namespaces': [{'binding': 'KV'}]},
+                                  'production': self.config['env']['production']}},
+        ]:
+            with self.subTest(config=config):
+                (self.bindings / 'wrangler.json').write_text(json.dumps(config))
+                with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'explicit'):
+                    self.deploy('staging')
+        self.assertEqual(self.calls, [])
+
+    def test_provider_identity_case_cannot_bypass_isolation(self):
+        self.config['env']['production']['d1_databases'] = [{'binding': 'DB', 'database_id': 'abcd-1234'}]
+        self.config['env']['staging']['d1_databases'] = [{'binding': 'DB', 'database_id': 'ABCD-1234'}]
+        self.write_config()
+        with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'isolated'):
+            self.deploy('staging')
+        self.assertEqual(self.calls, [])
+
+    def test_separate_resources_and_worker_local_durable_objects_are_supported(self):
+        for scope in ['staging', 'production']:
+            self.config['env'][scope].update(
+                d1_databases=[{'binding': 'DB', 'database_id': scope + '-db'}],
+                r2_buckets=[{'binding': 'CACHE', 'bucket_name': scope + '-cache'}],
+                services=[{'binding': 'API', 'service': scope + '-api'}],
+                durable_objects={'bindings': [{'name': 'DO', 'class_name': 'Cache'}]})
+        self.write_config()
+        with patch('studio.providers.probe'):
+            self.deploy('staging')
+        self.assertEqual(len(self.calls), 1)
+
     def test_malformed_environment_mappings_fail_before_deployment(self):
         for value in [None, [], 'production']:
             with self.subTest(value=value):
@@ -93,7 +197,7 @@ class WorkersSiteTests(unittest.TestCase):
         self.config['env']['staging']['routes'] = [route]
         self.config['env']['production']['routes'] = [route]
         self.write_config()
-        with self.assertRaisesRegex(ValueError, 'isolated'):
+        with patch('studio.providers.probe'), self.assertRaisesRegex(ValueError, 'isolated'):
             self.deploy('staging')
         self.assertEqual(self.calls, [])
 

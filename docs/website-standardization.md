@@ -27,6 +27,7 @@ Curfew's current remote source uses `landing/` and `docs/`. Its divergent primar
 ## Local implementation evidence
 
 - The Workers site adapter accepts prebuilt modules/assets, frozen configuration, explicit account/environment bindings, and full release metadata. Website-only assembly stages and promotes the same archive after the mutable build directory is removed.
+- Fresh review found unbounded Wrangler file inputs and shared production resource identities. Regression tests failed before the fixes. Supported file inputs now remain within the archive, and preview resource identities must differ from production. The pinned Wrangler dry run preserves reviewed module/chunk bytes and excludes outside files. All 117 Python checks, four Swift tests, workflow lint, and runtime assembly pass locally. Hosted CI and actual framework/provider acceptance remain open.
 - The native package profile now uses `pnpm pack --pack-destination`; pnpm 11.9.0 rejects the previous `--outdir` argument.
 - Shared Mintlify tooling compiles and installs as a packed package in a clean Node 24.20.0/pnpm 11.9.0 consumer checkout. Product configuration fixtures preserve every Curfew and Docket field. Native validators run against actual content.
 - Docket's 52-page docs pass native build validation, links/anchors/redirects/snippets, and accessibility. Curfew's initial checks found two incorrect prefix links and insufficient primary-color contrast. The links are corrected; Willie approved `#b25e30` for docs text/controls while preserving marketing branding.
