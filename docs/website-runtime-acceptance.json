@@ -1,0 +1,89 @@
+{
+  "account_id": "2500680a3b2b0fe6a011c1c25fed5008",
+  "components": {
+    "astro": {
+      "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+      "candidate_id": "20261010-1",
+      "configuration_sha256": "393701629b5677bd61b5e7584beb4a24be026d6c643dd443f260dd633a82ba4c",
+      "deployment_id": "9d3bd97c-d4d7-4d69-a577-de1151d65b45",
+      "health_url": "https://studio-web-fixture-astro-1010-staging.hypertext-studio.workers.dev/__studio/release",
+      "history": [
+        {
+          "error_type": "RuntimeError",
+          "operation": "staging",
+          "state": "failed"
+        }
+      ],
+      "initial_failure": "Upload succeeded; Python default User-Agent was blocked with Cloudflare error 1010. An explicitly identified Studio release probe passed after a reproducing regression and fix.",
+      "provider_checks": {
+        "custom_404": "passed",
+        "release_metadata": "passed",
+        "script_free_html": "passed",
+        "static_asset": "passed",
+        "unknown_route_404": "passed"
+      },
+      "reconciled_without_redeployment": true,
+      "state": "preview-verified",
+      "versions": [
+        {
+          "percentage": 100,
+          "version_id": "1a467bc8-8cf1-4df9-8102-2bfa0f75136c"
+        }
+      ],
+      "worker": "studio-web-fixture-astro-1010-staging"
+    },
+    "next": {
+      "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+      "candidate_id": "20261010-1",
+      "configuration_sha256": "e81d53ddf90f0568398cf3f8fa720aa3887a9c5bfb69c2e0b185f7083baba94d",
+      "deployment_id": "f8c32a8b-1f9d-487e-b724-e907bc77058d",
+      "health_url": "https://studio-web-fixture-next-1010-staging.hypertext-studio.workers.dev/__studio/release",
+      "history": [
+        {
+          "error_type": "HTTPError",
+          "operation": "staging",
+          "state": "failed"
+        }
+      ],
+      "initial_failure": "Release metadata passed immediately after deployment but the first HTML request returned 404. A later read returned the expected HTML; reconciliation passed without redeployment.",
+      "provider_checks": {
+        "application_module_bytes": "passed",
+        "cookie_query_route_handler": "passed",
+        "private_cache_headers": "passed",
+        "release_metadata": "passed",
+        "static_asset": "passed",
+        "unknown_route_404": "passed",
+        "viewer_isolation": "passed"
+      },
+      "reconciled_without_redeployment": true,
+      "state": "preview-verified",
+      "versions": [
+        {
+          "percentage": 100,
+          "version_id": "7d927070-5bc8-4253-8406-7833ee6cd10c"
+        }
+      ],
+      "worker": "studio-web-fixture-next-1010-staging"
+    }
+  },
+  "fixture_source_sha": "942e651354024071edd1074cbf49b54a3845a1fd",
+  "observed_at": "2026-10-11T02:07:30.425079+00:00",
+  "provider_module_sha256": "a0561299dfef9f4d6520f5020a97bd49a09d6f98acf35b4e5555796d2f0cf350",
+  "remaining": [
+    "test-environment production promotion of identical archive bytes",
+    "previous complete release and route/domain recovery",
+    "product framework compatibility and authenticated acceptance",
+    "production hosting cutover and observation",
+    "legacy hosting retirement"
+  ],
+  "schema": 1,
+  "scope": "isolated-framework-provider-previews",
+  "toolchain": {
+    "astro": "7.2.9",
+    "next": "16.3.8",
+    "node": "24.20.0",
+    "opennext": "1.20.10",
+    "pnpm": "11.9.0",
+    "wrangler": "4.148.0"
+  }
+}

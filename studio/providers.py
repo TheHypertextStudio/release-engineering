@@ -69,7 +69,8 @@ def probe(url, *, expected_sha=None, expected_metadata=None, attempts=8, interva
         raise ValueError("Release probes require an HTTPS URL without credentials")
     for attempt in range(attempts):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers={"Accept": "application/json"}), timeout=20) as response:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={
+                    "Accept": "application/json", "User-Agent": "Studio-Release-Probe/1.0"}), timeout=20) as response:
                 if response.geturl().split(":", 1)[0] != "https":
                     raise ValueError("Release probes cannot downgrade HTTPS")
                 payload = response.read(262145)

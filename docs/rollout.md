@@ -92,6 +92,13 @@ extract the same shipping archive without rebuilding. Hosted runtime CI and
 real provider preview/promotion/recovery are tracked separately. This does not
 establish product compatibility, authenticated acceptance, or a hosting cutover.
 
+Two isolated framework previews now pass HTTPS metadata, HTML/assets, and 404
+checks on Cloudflare. The Next.js fixture also passes viewer isolation and
+private cache header checks. Initial failures are retained in
+[website-runtime-acceptance.json](website-runtime-acceptance.json), followed by
+successful reconciliation of the same provider deployments. Production test
+promotion and complete release/routing recovery still require acceptance.
+
 The first signed Curfew candidate must pass hosted validation, notarization,
 installation and launch on supported Macs. The reviewer must inspect its
 shipping bytes and record licensed delivery and update evidence. A staging or

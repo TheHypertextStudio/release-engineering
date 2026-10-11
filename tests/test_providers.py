@@ -2,9 +2,25 @@ import importlib
 import pathlib
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 class ProviderTests(unittest.TestCase):
+    def test_release_probe_identifies_itself_without_changing_identity_checks(self):
+        module = self.module()
+        class Response:
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def geturl(self): return 'https://fixture.example/__studio/release'
+            def read(self, limit): return b'{"candidateId":"123-1"}'
+        with patch('studio.providers.urllib.request.urlopen', return_value=Response()) as open_url:
+            result = module.probe('https://fixture.example/__studio/release',
+                                  expected_metadata={'candidateId': '123-1'}, attempts=1)
+        request = open_url.call_args.args[0]
+        self.assertEqual(request.get_header('User-agent'), 'Studio-Release-Probe/1.0')
+        self.assertEqual(request.get_header('Accept'), 'application/json')
+        self.assertEqual(result['status'], 'passed')
+
     def module(self):
         try:
             return importlib.import_module("studio.providers")
