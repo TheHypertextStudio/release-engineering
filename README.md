@@ -1,11 +1,11 @@
 # Studio release engineering
 
-Studio engineers and coding agents must declare product facts in `studio.yaml`
+Native product engineers and coding agents declare product facts in `studio.yaml`
 and use the pinned lifecycle implementation. Product reviewers must inspect the
 shipping candidate and invoke Promote with its manifest digest and acceptance
 evidence.
 
-Every product exposes the same commands:
+Native products using this lifecycle expose the following commands:
 
 ```sh
 ./run setup
@@ -27,9 +27,10 @@ Products must not reimplement those operations.
 
 [The release sequence](docs/release-sequence.md) explains how a push becomes a
 candidate and how approved dependencies precede client publication.
-[The website contract](docs/websites.md) covers immutable Workers frontends and
-source-bound Mintlify observations through `./run docs inspect`. Mintlify
-keeps its existing Git publisher and renderer.
+Company websites use pinned native pnpm, framework adapters and Wrangler commands
+in their own repositories, with conventional GitHub Actions and environment
+approvals. They do not use this engine for frontend candidate, cache, recovery
+or Mintlify inspection operations. Mintlify keeps its Git publisher and renderer.
 [The macOS contract](docs/macos.md) specifies signing, Sparkle and Store profiles.
 [The rollout record](docs/rollout.md) distinguishes tested code from credentialed
 product acceptance. No unsigned local build satisfies a signed-release gate.

@@ -312,7 +312,7 @@ def record_ready(config, candidate):
                        env=env,text=True,check=True,capture_output=True)
 
 
-def promote_component(config, candidate, component, environment, *, journal=None, authorize=None):
+def promote_component(config, candidate, component, environment):
     from .bindings import component as bound_component
     component=bound_component(candidate,component)
     matches = [item for item in candidate.data['artifacts'] if item['component'] == component['id']]
@@ -341,8 +341,7 @@ def promote_component(config, candidate, component, environment, *, journal=None
                 output=root/'.vercel'/'output'; output.mkdir(parents=True)
                 for path in list(root.iterdir()):
                     if path.name!='.vercel': shutil.move(str(path),output/path.name)
-            website_artifact={**matches[0],'candidate_id':candidate.data['id']}
-            return deploy_site(component,website_artifact,environment,root,config['toolchain'],bindings_root=candidate.path.parent, **({'journal':journal} if journal is not None else {}), **({'authorize':authorize} if authorize is not None else {}))
+            return deploy_site(component,matches[0],environment,root,config['toolchain'])
     if component['kind'] == 'macos':
         if environment != 'production':
             raise CandidateError('Shipping identities do not deploy to staging')
@@ -463,19 +462,19 @@ def promote(config,candidate,review,journal_path):
             declared=load_config(directory / 'studio.yaml')
             for component in promotion_order(declared.components):
                 _authorization_check(config,candidate)
-                result=journal.perform(f'dependency:{dependency["id"]}:{component["id"]}',lambda c=component,d=declared,m=dependent:promote_component(d,m,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate)))
+                result=journal.perform(f'dependency:{dependency["id"]}:{component["id"]}',lambda c=component,d=declared,m=dependent:promote_component(d,m,c,'production'))
                 require_completed(result)
         for component in promotion_order(config.components):
             _authorization_check(config,candidate)
             if component['kind']=='macos':
                 if 'direct' in config['release']['channels']:
-                    journal.perform(component['id']+':direct',lambda c=component:promote_component(config,candidate,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate)))
+                    journal.perform(component['id']+':direct',lambda c=component:promote_component(config,candidate,c,'production'))
                 if 'app-store' in config['release']['channels']:
                     from . import store
                     journal.perform(component['id']+':store-upload',lambda c=component:store.upload(config,candidate,c,authorized_digest=candidate.digest))
                     journal.perform(component['id']+':store-review',lambda c=component:store.submit(config,candidate,c,authorized_digest=candidate.digest))
             else:
-                require_completed(journal.perform(component['id'],lambda c=component:promote_component(config,candidate,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate))))
+                require_completed(journal.perform(component['id'],lambda c=component:promote_component(config,candidate,c,'production')))
 
     finally:
         try:
