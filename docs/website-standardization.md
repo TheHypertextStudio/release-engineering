@@ -36,3 +36,23 @@ Curfew's current source uses `landing/` and `docs/`. Its divergent primary check
 - External Mintlify observation now has a `docs inspect` CLI path: it verifies GitHub checks on the reviewed SHA, branch ancestry, and provider deployment/project/commit/ref identity; it records queued, failed, and successful states separately from Workers candidates. All 15 focused transport/validation tests and the full 132-test Python suite pass locally; the native GitHub client also read Docket's actual source ancestry and successful docs check runs. Live REST API acceptance remains unverified and requires existing eligible access; no subscription upgrade or admin key was created.
 
 See [websites.md](websites.md) for the adapter and publishing contracts. Local checks do not establish shared package registry availability, live preview/production acceptance, completed rollout observation, or legacy hosting retirement.
+
+### Framework runtime acceptance
+
+Real Astro 7.2.9 and Next.js 16.3.8/OpenNext 1.20.10 shipping artifacts now pass
+local workerd acceptance on pinned Wrangler 4.148.0. The first runtime run
+observed both missing metadata routes and incorrect viewer rendering; the
+completed fixture run passes both archive/environment and viewer-isolation
+tests. It covers real HTML, modules, static assets, 404s, all release identity
+fields, and unchanged archived bytes across staging/production extraction.
+The CI job runs this without provider credentials.
+
+Packaging rejected OpenNext's intermediate dependency symlinks as designed.
+Candidate creation now performs the final native Wrangler bundle before
+archiving. Promotion does not rebuild or copy a Node dependency tree.
+
+Current OpenNext's declared Next.js peer range excludes LogDate's existing
+16.2.4 pin. The fixture uses a supported pair without changing product sources.
+Task 7 requires separate dependency preparation and per-product compatibility
+evidence. Fixture success does not prove application caching, authentication,
+backend behavior, real Cloudflare preview/promotion, or release/route recovery.

@@ -13,3 +13,13 @@ build/
 *.tfplan
 .studio-engine/
 .studio-source/
+node_modules/
+.astro/
+.next/
+.open-next/
+.artifact/
+.wrangler/
+worker-configuration.d.ts
+*.tsbuildinfo
+.wrangler-fixture-build.json
+/tests/fixtures/websites/next/next-env.d.ts

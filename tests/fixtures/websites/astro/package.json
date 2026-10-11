@@ -1,0 +1,13 @@
+{
+  "name": "@thehypertextstudio/workers-astro-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "build:worker": "pnpm build && wrangler types --config wrangler.json --env staging --include-runtime=false --strict-vars=false && tsc -p tsconfig.worker.json && node ../assemble.mjs astro"
+  },
+  "dependencies": {
+    "astro": "7.2.9"
+  }
+}
+

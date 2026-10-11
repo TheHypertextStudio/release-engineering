@@ -46,7 +46,17 @@ Module roots and legacy file bindings are validated inside the extracted archive
 
 Declare resource bindings explicitly in both environments, using an empty array or mapping when that environment intentionally has none. Preview D1, R2, KV, queues (including dead-letter queues), services, external Durable Objects, Vectorize, Hyperdrive, workflows, datasets, pipelines, artifacts, dispatch namespaces, secret-store references, rate limiters, and tail consumers must have distinct provider identities from production. Worker-local Durable Objects remain isolated by the distinct Worker names. The adapter provides no shared-resource exception: a future exception needs demonstrated restricted access and a reviewed policy. These identity guards do not establish the permissions of provider credentials or the isolation of arbitrary backend URLs; verify those separately before preview acceptance.
 
-Run `STUDIO_NATIVE_WORKERS_TESTS=1 python3 -m unittest discover -s tests -p 'test_workers_site*.py' -v` for the pinned Wrangler packaging check. It uses `--dry-run` and asserts that candidate-relative chunks retain their bytes and outside files are excluded. It never deploys to a provider account. Framework/workerd and authenticated provider acceptance remain separate gates.
+Run `STUDIO_NATIVE_WORKERS_TESTS=1 python3 -m unittest discover -s tests -p 'test_workers_site*.py' -v` for the pinned Wrangler packaging check. It uses `--dry-run` and asserts that candidate-relative chunks retain their bytes and outside files are excluded. It never deploys to a provider account.
+
+The [framework fixtures](../tests/fixtures/websites/README.md) build real Astro
+and Next.js/OpenNext output and run extracted shipping archives in local
+`workerd`. Install their frozen workspace, then run
+`STUDIO_FRAMEWORK_WORKERS_TESTS=1 python3 -m unittest discover -s tests -p test_workers_framework_runtime.py -v`.
+Hosted CI runs this gate without provider credentials. Final Wrangler bundling
+happens during candidate creation; OpenNext's intermediate Node standalone
+directory is not an acceptable immutable shipping artifact. Preview and
+production extract the same ZIP and disable bundling. Product compatibility
+and authenticated provider acceptance remain separate gates.
 
 After hashing, deployment injects:
 

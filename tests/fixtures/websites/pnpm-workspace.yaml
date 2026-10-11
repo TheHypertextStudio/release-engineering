@@ -1,0 +1,10 @@
+packages:
+  - astro
+  - next
+allowBuilds:
+  esbuild: true
+  rclone.js: false
+  sharp: true
+  workerd: true
+minimumReleaseAgeExclude:
+  - '@cloudflare/workers-types@5.20261011.1'
