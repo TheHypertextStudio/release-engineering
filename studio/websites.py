@@ -125,19 +125,33 @@ def _api_mutate(api, method, path, data, headers=None):
 
 def _deployment_version(api, account, worker):
     payload = _api_get(api, f'/accounts/{account}/workers/scripts/{worker}/deployments')
+    # The transport retains result_info for paginated callers. This endpoint's
+    # result is itself an object, rather than the lists returned by those APIs.
+    if isinstance(payload, dict) and ('result' in payload or 'result_info' in payload):
+        if ('deployments' in payload or not isinstance(payload.get('result'), dict)
+                or not isinstance(payload.get('result_info'), dict)):
+            raise ValueError('Cloudflare deployment response envelope is malformed')
+        payload = payload['result']
     deployments = payload.get('deployments') if isinstance(payload, dict) else None
     if not isinstance(deployments, list) or not deployments or not isinstance(deployments[0], dict):
         raise ValueError('Cloudflare has no complete Worker deployment to recover')
     versions = deployments[0].get('versions')
-    if not isinstance(versions, list):
+    if not isinstance(versions, list) or not versions:
         raise ValueError('Cloudflare deployment version state is malformed')
-    active = [v for v in versions if isinstance(v, dict) and v.get('percentage', 0) > 0]
+    for row in versions:
+        if not isinstance(row, dict):
+            raise ValueError('Cloudflare deployment version state is malformed')
+        percentage = row.get('percentage')
+        if (isinstance(percentage, bool) or not isinstance(percentage, (int, float))
+                or not 0 <= percentage <= 100):
+            raise ValueError('Cloudflare deployment percentage is malformed')
+        version = row.get('version_id')
+        if not isinstance(version, str) or not re.fullmatch(r'[A-Fa-f0-9-]{16,64}', version):
+            raise ValueError('Cloudflare deployment has an invalid version identity')
+    active = [v for v in versions if v['percentage'] > 0]
     if len(active) != 1 or active[0].get('percentage') != 100:
         raise ValueError('Workers recovery requires one complete 100% deployment')
-    version = active[0].get('version_id')
-    if not isinstance(version, str) or not re.fullmatch(r'[A-Fa-f0-9-]{16,64}', version):
-        raise ValueError('Cloudflare deployment has an invalid version identity')
-    return version
+    return active[0]['version_id']
 
 
 def _version_artifact_digest(api, account, worker, version):

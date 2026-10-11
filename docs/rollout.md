@@ -222,3 +222,20 @@ acceptance receipt. No provider write, credential creation/read, dependency
 installation, release or product adoption occurred during implementation. Context7 was already
 monthly-quota blocked; current official Cloudflare and AWS source documents
 supplied this protocol proposal, not a successful Context7 retrieval.
+
+## Worker recovery deployment envelope correction
+
+Recovery capture run 38165763297 stopped before producing a recovery record:
+the deployment reader expected a direct `deployments` object, while the
+Cloudflare transport preserves `result` and `result_info` when pagination
+metadata is present. The [official list deployments response](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/)
+has exactly that envelope. The endpoint reader now accepts the transport's
+envelope as well as direct results, rejects ambiguous or malformed envelopes
+and rollout rows, and still requires one active version at 100%. Generic
+transport and custom-domain pagination are unchanged.
+
+This correction is unreleased source. Static checks are separate from recovery
+acceptance; no tests were added or manually run, and no provider request, release,
+tag or consumer pin change was performed for this correction. The failed
+capture remains retained evidence; a future authorized hosted capture must
+prove recovery against the real complete deployment.
