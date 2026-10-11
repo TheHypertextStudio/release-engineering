@@ -38,6 +38,30 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(config.product, 'example')
         self.assertEqual(config.components[0]['kind'], 'swiftpm')
 
+    def test_development_component_must_name_a_declared_component(self):
+        declaration = CONFIG.replace('release:', 'development:\n  component: missing\nrelease:')
+        with self.assertRaisesRegex(ConfigError, 'development.component'):
+            self.load(declaration)
+
+    def test_development_component_must_be_a_string(self):
+        for value in ('[app]', 'null', '1'):
+            declaration = CONFIG.replace('release:', f'development:\n  component: {value}\nrelease:')
+            with self.subTest(value=value), self.assertRaisesRegex(ConfigError, 'development.component'):
+                self.load(declaration)
+
+    def test_development_must_be_a_strict_mapping(self):
+        declarations = (
+            CONFIG.replace('release:', 'development: app\nrelease:'),
+            CONFIG.replace('release:', 'development:\n  component: app\n  extra: true\nrelease:'),
+        )
+        for declaration in declarations:
+            with self.subTest(declaration=declaration), self.assertRaisesRegex(ConfigError, 'development'):
+                self.load(declaration)
+
+    def test_loads_declared_development_component(self):
+        declaration = CONFIG.replace('release:', 'development:\n  component: app\nrelease:')
+        self.assertEqual(self.load(declaration).data['development']['component'], 'app')
+
     def test_rejects_release_hooks(self):
         with self.assertRaises(ConfigError):
             self.load(CONFIG.replace('  channels:', '  hooks: ["sh -c deploy"]\n  channels:'))

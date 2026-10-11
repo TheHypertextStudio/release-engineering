@@ -120,6 +120,34 @@ metadata matching, response-size bounds, or the provider's security settings.
 The [runtime acceptance record](website-runtime-acceptance.json) retains the
 failed observations and reconciled deployment identities.
 
-Before a cutover, record the previous complete deployment, Worker versions, routes/domain bindings, backend compatibility, and recovery instructions. Keep the previous Pages/Vercel deployment for the migration's retention period. Recovery restores matching HTML, modules, static assets, and route bindings together; data migrations remain forward compatible.
+Before a Worker cutover, preserve its complete artifact ZIP and matching Wrangler JSON, then capture the live provider state before promoting the candidate:
 
-Provider cutover, a real failed-probe/retry/rollback exercise, and authenticated production acceptance remain explicit operations. The current adapter implementation does not by itself capture or restore live routes and Worker versions.
+```sh
+./run site recovery capture --component website --env production \
+  --archive .studio/prior-worker.zip --worker-config wrangler.json \
+  --record .studio/recovery/production.json
+```
+
+The command reads the latest complete 100% version, verifies the version's `STUDIO_ARTIFACT_SHA256` against the retained ZIP, and stores that version ID, the ZIP and config digests, the Worker routes, every page of custom domains, and workers.dev/preview state. It resolves the Cloudflare service environment from the Worker's `default_environment` metadata; this can be `production` even when the logical Studio environment selects a separately named Worker script. It rereads version and routing state before writing evidence and rejects a snapshot if either changed. It uses the existing `CLOUDFLARE_API_TOKEN` environment binding and never reads or writes application data. Keep the record directory with the release evidence.
+
+To recover, first capture the current release too. Point `--archive` at its exact candidate ZIP and `--worker-config` at its deployed Wrangler config; this read-only snapshot gives you the live version and route/domain digest to review:
+
+```sh
+./run site recovery capture --component website --env production \
+  --archive .studio/candidate/build.zip --worker-config wrangler.json \
+  --record .studio/recovery/current.json
+```
+
+Use `prior_version_id` and `prior_routing_sha256` from `current.json` as the live-state guards below. Restore also validates the component's current declared Wrangler config, account, and Worker identity. The final confirmation binds the logical environment, Cloudflare service environment, prior version, and saved record hash:
+
+```sh
+./run site recovery restore --component website --env production \
+  --record .studio/recovery/production.json \
+  --expected-current-version <live-version-id> \
+  --expected-current-routing-sha256 <live-routing-sha256> \
+  --confirm 'restore:<account-id>:<worker>:production:<service-environment>:<prior-version-id>:<record-sha256>'
+```
+
+Restore validates the record and retained file hashes, checks that the live version and route/domain digest still match the operator's reviewed state, uses the pinned Wrangler `rollback <version-id>`, then restores routes, custom-domain origins and subdomain flags through Worker-scoped Cloudflare endpoints. The subdomain write includes Wrangler's pinned `Cloudflare-Workers-Script-Api-Date: 2025-08-01` compatibility header. The command persists `.restore.json` beside the recovery record (or uses `--journal`) before its first mutation. That journal binds the record hash, current config identity, original reviewed version, and original per-scope route/domain/subdomain snapshots. If a provider call fails or the process stops before the final receipt, rerun restore with the same record, journal, confirmation, and original start-state guards; it reconciles already-restored scopes and repeats only scopes still at their recorded original values. A newer third version or any route/domain/subdomain state outside the journaled original and target snapshots stops before further mutation. The route endpoint replaces only the selected Worker environment's routes; custom-domain writes refuse to override an existing origin or DNS record. Database and object-store resources are not changed.
+
+Pages/Vercel cutovers retain their old provider deployment separately. Local mocked contract tests do not establish the real failed-probe/retry/rollback exercise or authenticated production acceptance; those remain explicit provider gates.

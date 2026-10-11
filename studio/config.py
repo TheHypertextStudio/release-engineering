@@ -124,6 +124,15 @@ def load_config(path='studio.yaml'):
             raise ConfigError('Build commands are owned by native lifecycle profiles')
         if 'command' in build or 'script' in build and component['kind'] not in {'pnpm', 'static-site', 'cloudflare-worker', 'cloud-run'}:
             raise ConfigError('Build cannot use arbitrary command strings')
+    if 'development' in data:
+        development = data['development']
+        if not isinstance(development, dict) or set(development) != {'component'}:
+            raise ConfigError('development must be a mapping containing only component')
+        selected = development['component']
+        if not isinstance(selected, str):
+            raise ConfigError('development.component must be a component identifier string')
+        if selected not in ids:
+            raise ConfigError('development.component must name a declared component')
     release = data['release']
     for key in ('channels', 'required_checks', 'required_evidence'):
         value = release.get(key, [])
