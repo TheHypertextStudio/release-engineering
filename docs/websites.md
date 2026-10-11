@@ -154,8 +154,19 @@ Pages/Vercel cutovers retain their old provider deployment separately. Local moc
 
 ## Retained OpenNext R2 cache
 
-Declare `deploy.opennext_cache.directory: .open-next/cache` when a Workers site
-uses OpenNext's `NEXT_INC_CACHE_R2_BUCKET`. Keep the complete native cache tree
+A cache-enabled candidate using this runtime must declare its remote transport:
+
+```yaml
+deploy:
+  opennext_cache:
+    directory: .open-next/cache
+    transport: s3
+```
+
+Use this when a Workers site uses OpenNext's `NEXT_INC_CACHE_R2_BUCKET`. Missing
+or unknown transport fails before network writes; this is an explicit contract
+change for future candidates. Already published v0.1.8 candidates retain their
+immutable runtime and original declaration contract. Keep the complete native cache tree
 in the reviewed archive. Each environment must declare that binding exactly
 once with a separate bucket name. Production and staging bucket identities,
 including any preview bucket aliases, cannot overlap. An optional environment
@@ -171,21 +182,66 @@ configuration (`images: {"binding": "IMAGES"}` with optional boolean `remote`)
 is accepted and must be explicit in both environments. The cache build ID must
 match the native `BUILD_ID` file in the retained asset directory.
 
-Before uploading the Worker, pinned Wrangler uploads the exact retained bytes
-with `r2 object put --remote`, reads each object with `r2 object get --remote`,
-and checks SHA-256. This path never invokes OpenNext's source dependency
-resolver, builds source, or provisions buckets. A missing bucket or missing
-object permission fails before Worker upload. Jurisdiction is a bounded opaque
-identifier passed unchanged, matching the pinned native optional string field;
-provider support is checked by the native object operations. Three attempts cover ambiguous
-native command failures by repeating the same bucket, key and bytes.
+For `s3`, the shared runtime uploads exact retained bytes to the bucket's R2
+S3 endpoint, then streams a GET and verifies both byte length and SHA-256 before
+Worker upload. It performs only PUT/GET on the declared bucket and native keys.
+There is no OpenNext resolver, source build, bucket creation, multipart upload,
+object deletion or automatic REST fallback. Fixed endpoints support default,
+EU, US and FedRAMP jurisdictions; unsupported jurisdictions fail before writes.
+Region is `auto`. Cache inventory is bounded to 10,000 objects, 64 MiB each and
+512 MiB total, with a separate 40,000 filesystem-entry traversal bound. These
+are runtime safeguards, not Cloudflare service limits. Native TCP/TLS connect
+and socket operations use a 30-second timeout. After connection, an absolute
+90-second shutdown timer bounds the exchange, including header parsing, writes
+and streamed reads. OS DNS resolution is outside that timer; this is not a
+whole-operation DNS deadline. HTTP responses reject redirects, oversized bodies,
+malformed framing, truncated metadata and unexpected content encoding. ETags do not substitute for full byte readback.
+
+The existing staging or production `CLOUDFLARE_API_TOKEN` must be account-owned
+and have Editor for the selected existing Worker plus **Workers R2 Storage
+Bucket Item Write** for only that environment's bucket. The bucket resource is
+`com.cloudflare.edge.r2.bucket.<account>_<jurisdiction-or-default>_<bucket-name>`;
+it is not the public bucket ID. Bootstrap owns routing: changing routes during
+deployment requires separate zone permissions and is not granted by bucket
+scope. Environment credentials must match the reviewed provider policy; a token
+activity response alone does not prove scope.
+
+The runtime verifies the token at the fixed account-owned
+`GET /accounts/<account>/tokens/verify`, requires an active ID and valid optional
+time bounds, and derives S3 credentials in memory: access key ID = token ID;
+secret key = lowercase SHA-256 hex of the exact token value. It does not persist
+additional AWS secrets or place them in command arguments, runtime bindings or
+artifacts. Nonsecret execution receipts record token ID, account and validity
+metadata so the actual credential can be correlated with its reviewed policy.
+Authorization headers, derived keys and response payloads are never diagnostic
+output. Verification errors do not trigger a user-token endpoint fallback or
+API Tokens Read/Edit grant.
+
+`transport: wrangler-rest` is available only as an explicit compatibility choice
+for independently reviewed existing credentials that authorize the native REST
+object operations. Bucket Object Read/Write is documented as S3-only and cannot
+be assumed to authorize REST. That option retains pinned Wrangler object
+PUT/GET and jurisdiction handling; it never receives an automatic permission
+upgrade. The local target continues to use Wrangler's local store with a
+separate target identity, regardless of the declared remote transport.
+
+S3 operations retry transport ambiguity, HTTP 408/429 and 5xx at most three
+times with bounded backoff, repeating the same bucket/key/bytes. Authorization,
+malformed responses, redirects and readback mismatches fail closed. No
+persistent additional S3 credential is needed. R2 temporary credentials are an
+optional later delegation from an existing parent token, not a native GitHub
+OIDC exchange; this runtime does not mint them.
 
 Production records every cache object in the existing durable promotion journal.
 Receipt slots are namespaced by immutable candidate ID and component, allowing
 dependent candidates in the same journal. The identity binds the account,
 Worker, environment, artifact metadata,
-bucket, jurisdiction and complete cache inventory. Interrupted runs retain
-completed object receipts and retry failed or running operations. A changed
+bucket, jurisdiction, transport, endpoint and complete cache inventory including
+lengths and digests. Interrupted runs retain completed object receipts and retry
+failed or running operations. S3 resume verifies completed objects again; a
+missing or mismatched object is repaired only by a newly authorized PUT of the
+same retained bytes followed by fresh GET verification. Rotatable token IDs are
+audit metadata and do not change the immutable plan identity. A changed
 identity cannot reuse those receipts. Promotion rechecks the current human
 authorization immediately before each remote object upload or retry and before
 the final Worker upload; revocation stops further writes and preserves receipts. Staging keeps its receipt beneath the
@@ -199,3 +255,13 @@ Local acceptance uses the same adapter with an explicit local target and a
 separate receipt identity. The native tests round-trip raw objects through
 Wrangler, compare keys with pinned OpenNext, and run real Next archives with
 R2 incremental cache after extraction.
+
+
+The credential and protocol contracts above follow current
+[Cloudflare R2 authentication](https://developers.cloudflare.com/r2/api/tokens/),
+[account-token verification](https://developers.cloudflare.com/api/resources/accounts/subresources/tokens/methods/verify/),
+[Worker authorization](https://developers.cloudflare.com/workers/authorization/)
+and [AWS SigV4](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv-create-signed-request.html).
+Implementation source and static validation are not signing-vector, native S3,
+or provider acceptance. The scoped account-token PUT/GET path must be accepted
+with the real reviewed staging credential before adoption.

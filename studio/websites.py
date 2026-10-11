@@ -7,10 +7,13 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 from urllib.parse import urlsplit
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from .candidate import PromotionJournal
+from .r2_s3 import (MAX_CACHE_BYTES, MAX_CACHE_ENTRIES, MAX_OBJECT_BYTES,
+                    R2ReadbackMismatch, R2S3Client, R2TransportError, endpoint)
 
 
 # This bounded profile deliberately excludes filesystem/build options that need
@@ -813,6 +816,22 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
     return command, metadata
 
 
+def _cache_digest(source, size):
+    if source.is_symlink() or not source.is_file() or size > MAX_OBJECT_BYTES:
+        raise ValueError('OpenNext cache requires bounded regular files')
+    digest = hashlib.sha256()
+    received = 0
+    with source.open('rb') as file:
+        while block := file.read(min(1024 * 1024, size - received + 1)):
+            received += len(block)
+            if received > size:
+                raise ValueError('OpenNext cache source length changed')
+            digest.update(block)
+    if received != size:
+        raise ValueError('OpenNext cache source length changed')
+    return digest.hexdigest()
+
+
 def _opennext_cache_plan(component, metadata, environment, root, config):
     """Map OpenNext 1.20.10 retained cache paths to native R2 object keys.
 
@@ -828,8 +847,9 @@ def _opennext_cache_plan(component, metadata, environment, root, config):
                      for scope in scopes)
     if declared is None and not uses_cache:
         return None
-    if not isinstance(declared, dict) or set(declared) != {'directory'}:
-        raise ValueError('OpenNext R2 cache requires a retained directory declaration')
+    if (not isinstance(declared, dict) or set(declared) != {'directory', 'transport'}
+            or declared['transport'] not in ('s3', 'wrangler-rest')):
+        raise ValueError('OpenNext R2 cache requires a retained directory and explicit s3 or wrangler-rest transport')
     cache = _inside(root, declared['directory'], 'OpenNext cache', directory=True)
     selected = scopes[0 if environment == 'staging' else 1]
     for scope in scopes:
@@ -851,9 +871,18 @@ def _opennext_cache_plan(component, metadata, environment, root, config):
         raise ValueError('OpenNext cache prefix must be a bounded relative object prefix')
     entries = []
     build_ids = set()
-    for file in sorted(cache.rglob('*')):
+    total = 0
+    for index, file in enumerate(cache.rglob('*')):
+        if index >= MAX_CACHE_ENTRIES * 4 or file.is_symlink() or not file.resolve().is_relative_to(cache):
+            raise ValueError('OpenNext cache inventory exceeds its safe bound')
         if not file.is_file():
+            if not file.is_dir():
+                raise ValueError('OpenNext cache requires regular files and directories')
             continue
+        size = file.stat().st_size
+        total += size
+        if len(entries) >= MAX_CACHE_ENTRIES or size > MAX_OBJECT_BYTES or total > MAX_CACHE_BYTES:
+            raise ValueError('OpenNext cache byte or object count exceeds bound')
         parts = file.relative_to(cache).parts
         if any('\\' in part for part in parts) or parts[0].startswith('__fetch') and parts[0] != '__fetch':
             raise ValueError('Invalid retained OpenNext cache path')
@@ -873,14 +902,68 @@ def _opennext_cache_plan(component, metadata, environment, root, config):
             raise ValueError('OpenNext cache object key exceeds R2 limits')
         build_ids.add(build_id)
         entries.append({'file': str(file.relative_to(root)), 'key': object_key,
-                        'sha256': hashlib.sha256(file.read_bytes()).hexdigest()})
+                        'size': size, 'sha256': _cache_digest(file, size)})
+    entries.sort(key=lambda entry: entry['file'])
     build_id_file = _inside(root, str(Path(deploy['assets']) / 'BUILD_ID'), 'OpenNext build ID')
     build_id = build_id_file.read_text().strip()
     if build_ids != {build_id} or len({row['key'] for row in entries}) != len(entries):
         raise ValueError('OpenNext cache requires the retained asset build ID and distinct object keys')
+    host = endpoint(config['account_id'], bucket.get('jurisdiction')) if declared['transport'] == 's3' else None
     return {'artifact': metadata, 'account_id': config['account_id'], 'worker': selected['name'],
             'environment': environment, 'wrangler_environment': deploy['environments'][environment],
-            'bucket': bucket['bucket_name'], 'jurisdiction': bucket.get('jurisdiction'), 'entries': entries}
+            'bucket': bucket['bucket_name'], 'jurisdiction': bucket.get('jurisdiction'),
+            'transport': declared['transport'], 'endpoint': host, 'entries': entries}
+
+
+def _s3_attempts(operation):
+    for attempt in range(3):
+        try:
+            return operation()
+        except R2TransportError as error:
+            if not error.retryable or attempt == 2:
+                raise
+            time.sleep(0.5 * 2 ** attempt)
+
+
+def _seed_s3_cache(plan, identity, slot, root, journal, authorize):
+    client = R2S3Client(plan['account_id'], plan['jurisdiction'])
+    journal.data.setdefault('cache_credentials', {})[slot] = client.credential_receipt
+    journal._save()
+    for entry in plan['entries']:
+        source = _inside(root, entry['file'], 'OpenNext cache file')
+        if _cache_digest(source, entry['size']) != entry['sha256']:
+            raise ValueError('OpenNext cache source digest changed before upload')
+        operation = f'website-cache:{slot}:{entry["key"]}'
+
+        def verify(entry=entry):
+            client.verify(plan['bucket'], entry['key'], entry['size'], entry['sha256'])
+
+        # Reconcile completed receipts with actual bytes. A removed/corrupted
+        # object is repaired only with the same authorized retained content.
+        if journal.data['operations'].get(operation, {}).get('state') == 'completed':
+            try:
+                _s3_attempts(verify)
+                continue
+            except R2TransportError as error:
+                if not isinstance(error, R2ReadbackMismatch) and error.status != 404:
+                    raise
+                journal.data['operations'][operation] = {'state': 'pending'}
+                journal._save()
+
+        def upload(entry=entry, source=source):
+            def put_and_verify():
+                client.put(plan['bucket'], entry['key'], source, entry['size'], entry['sha256'],
+                           authorize=authorize)
+                verify()
+                return {'state': 'completed', 'bucket': plan['bucket'], 'key': entry['key'],
+                        'size': entry['size'], 'sha256': entry['sha256'], 'identity': identity,
+                        'token_id': client.credential_receipt['token_id']}
+            return _s3_attempts(put_and_verify)
+
+        journal.perform(operation, upload)
+    return {'state': 'completed', 'identity': identity, 'bucket': plan['bucket'],
+            'transport': 's3', 'entries': len(plan['entries']),
+            'credential': client.credential_receipt}
 
 
 def seed_workers_site_cache(component, metadata, environment, root, config_path, cli, *, runner,
@@ -905,13 +988,15 @@ def seed_workers_site_cache(component, metadata, environment, root, config_path,
         raise ValueError('OpenNext cache receipt identity differs from this deployment')
     journal.data['website_caches'][slot] = identity
     journal._save()
+    if target == 'remote' and plan['transport'] == 's3':
+        return _seed_s3_cache(plan, identity, slot, root, journal, authorize)
     flags = ['--' + target, '--config', str(config_path), '--env', plan['wrangler_environment'],
              '--env-file', os.devnull]
     if plan['jurisdiction']:
         flags.extend(['--jurisdiction', plan['jurisdiction']])
     for entry in plan['entries']:
         source = _inside(root, entry['file'], 'OpenNext cache file')
-        if hashlib.sha256(source.read_bytes()).hexdigest() != entry['sha256']:
+        if _cache_digest(source, entry['size']) != entry['sha256']:
             raise ValueError('OpenNext cache source digest changed before upload')
 
         def upload(entry=entry, source=source):
@@ -927,7 +1012,8 @@ def seed_workers_site_cache(component, metadata, environment, root, config_path,
                         downloaded = Path(temporary) / 'object'
                         runner([*cli, 'r2', 'object', 'get', f'{plan["bucket"]}/{entry["key"]}',
                                 '--file', str(downloaded), *flags], cwd=root)
-                        if not downloaded.is_file() or hashlib.sha256(downloaded.read_bytes()).hexdigest() != entry['sha256']:
+                        if (not downloaded.is_file() or downloaded.stat().st_size != entry['size']
+                                or _cache_digest(downloaded, entry['size']) != entry['sha256']):
                             raise ValueError('OpenNext cache readback digest mismatch')
                     return {'state': 'completed', 'bucket': plan['bucket'], 'key': entry['key'],
                             'sha256': entry['sha256'], 'identity': identity}
@@ -935,4 +1021,6 @@ def seed_workers_site_cache(component, metadata, environment, root, config_path,
                     if attempt == 2:
                         raise
         journal.perform(f'website-cache:{slot}:{entry["key"]}', upload)
-    return {'state': 'completed', 'identity': identity, 'bucket': plan['bucket'], 'entries': len(plan['entries'])}
+    return {'state': 'completed', 'identity': identity, 'bucket': plan['bucket'],
+            'transport': 'wrangler-local' if target == 'local' else 'wrangler-rest',
+            'entries': len(plan['entries'])}

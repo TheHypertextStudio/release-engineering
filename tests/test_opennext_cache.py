@@ -37,7 +37,7 @@ class OpenNextCacheTests(unittest.TestCase):
             for env in ('staging', 'production')}}
         self.component = {'id': 'web', 'path': '.', 'deploy': {
             'provider': 'workers', 'config': 'wrangler.json', 'entrypoint': 'worker.js', 'assets': 'assets',
-            'opennext_cache': {'directory': '.open-next/cache'},
+            'opennext_cache': {'directory': '.open-next/cache', 'transport': 'wrangler-rest'},
             'environments': {'staging': 'staging', 'production': 'production'},
             'health_urls': {env: f'https://{env}.example.com/__studio/release' for env in ('staging','production')}}}
         self.artifact = {'source_sha': 'a' * 40, 'sha256': 'b' * 64, 'candidate_id': '123-1'}
@@ -108,7 +108,7 @@ class OpenNextCacheTests(unittest.TestCase):
             with self.subTest(change=change):
                 saved = json.loads(json.dumps(self.config)); deploy = dict(self.component['deploy'])
                 bad = self.cache / 'invalid.txt'
-                if change == 'escape': self.component['deploy']['opennext_cache'] = {'directory': '../outside'}
+                if change == 'escape': self.component['deploy']['opennext_cache'] = {'directory': '../outside', 'transport': 'wrangler-rest'}
                 if change == 'shared-preview': self.config['env']['staging']['r2_buckets'][0]['preview_bucket_name'] = 'cache-production'
                 if change == 'missing-binding': self.config['env']['production']['r2_buckets'] = []
                 if change == 'invalid-file': bad.write_text('invalid')

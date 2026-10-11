@@ -188,3 +188,37 @@ on Node 24.20.0, together with four Swift tests, actionlint, runtime assembly an
 fix. Hosted workflow execution, real signing, private package delivery and
 provider promotion remain external acceptance gates; no push or release was
 performed for these changes.
+
+
+## Bucket-scoped R2 S3 transport: implementation pending acceptance
+
+The next runtime source adds a stdlib-only, query-free SigV4 R2 PUT/GET adapter
+and requires an explicit remote OpenNext cache transport. This addresses the
+published v0.1.8 Wrangler REST path's incompatibility with documented S3-only
+bucket-selected Object Read/Write tokens. Existing v0.1.8 runtime bytes, release
+pins and artifacts remain immutable. No release version is bumped here.
+
+S3 derives credentials only in memory from the existing account-owned CI token,
+after fixed account self-verification. It records nonsecret identity/time
+metadata, verifies exact raw object bytes and lengths, bounds inventory and
+HTTP reads, and rechecks completed objects on resume. The absolute 90-second
+exchange timer begins after connection; native TCP/TLS connect and socket
+operations use a 30-second timeout, while OS DNS resolution remains outside
+the timer. Candidate-scoped journal identity, staging/production isolation and
+authorization before each PUT/retry
+and final Worker upload remain enforced. Explicit wrangler-rest compatibility
+has no automatic fallback or account-wide grant.
+
+This is source preparation only. Per the task restriction no tests were added
+or run.
+Four existing fixture declaration literals were migrated to explicit
+`wrangler-rest`, preserving every case and assertion; this is configuration
+migration, not test acceptance. Future product callers must explicitly select
+transport before adopting this runtime. Signing vectors and independent signer
+comparison, fault/resume/bounds cases, local native cache acceptance and actual
+narrowly scoped token S3 PUT/GET remain
+unperformed. Static syntax/diff checks are recorded separately in the migration
+acceptance receipt. No provider write, credential creation/read, dependency
+installation, release or product adoption occurred during implementation. Context7 was already
+monthly-quota blocked; current official Cloudflare and AWS source documents
+supplied this protocol proposal, not a successful Context7 retrieval.

@@ -106,7 +106,7 @@ class FrameworkWorkersRuntimeTests(unittest.TestCase):
                     'config': 'wrangler.json', 'entrypoint': 'worker.js',
                     'assets': 'assets' if framework == 'astro' else '.open-next/assets',
                     'environments': {'staging': 'staging', 'production': 'production'},
-                    **({'opennext_cache': {'directory': '.open-next/cache'}} if framework == 'next' else {}),
+                    **({'opennext_cache': {'directory': '.open-next/cache', 'transport': 'wrangler-rest'}} if framework == 'next' else {}),
                 }}
                 # Two independently extracted shipping roots use the same zip bytes.
                 # Promotion never invokes a framework build or uses node_modules.
@@ -149,7 +149,7 @@ class FrameworkWorkersRuntimeTests(unittest.TestCase):
             unpack(archive, build)
             component = {'id': 'next', 'path': '.', 'deploy': {
                 'config': 'wrangler.json', 'entrypoint': 'worker.js', 'assets': '.open-next/assets',
-                'opennext_cache': {'directory': '.open-next/cache'},
+                'opennext_cache': {'directory': '.open-next/cache', 'transport': 'wrangler-rest'},
                 'environments': {'staging': 'staging', 'production': 'production'},
             }}
             artifact = {'source_sha': 'b' * 40, 'sha256': sha256(archive), 'candidate_id': '124-1'}
