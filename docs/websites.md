@@ -113,6 +113,13 @@ Shared package publication uses the existing npm adapter. The package candidate 
 
 ## Cutover and recovery
 
+Release probes identify themselves as `Studio-Release-Probe/1.0`. Cloudflare
+rejected the generic Python user agent during the first real fixture preview;
+using the service's own identifier fixes that request without changing TLS,
+metadata matching, response-size bounds, or the provider's security settings.
+The [runtime acceptance record](website-runtime-acceptance.json) retains the
+failed observations and reconciled deployment identities.
+
 Before a cutover, record the previous complete deployment, Worker versions, routes/domain bindings, backend compatibility, and recovery instructions. Keep the previous Pages/Vercel deployment for the migration's retention period. Recovery restores matching HTML, modules, static assets, and route bindings together; data migrations remain forward compatible.
 
 Provider cutover, a real failed-probe/retry/rollback exercise, and authenticated production acceptance remain explicit operations. The current adapter implementation does not by itself capture or restore live routes and Worker versions.

@@ -54,5 +54,31 @@ archiving. Promotion does not rebuild or copy a Node dependency tree.
 Current OpenNext's declared Next.js peer range excludes LogDate's existing
 16.2.4 pin. The fixture uses a supported pair without changing product sources.
 Task 7 requires separate dependency preparation and per-product compatibility
-evidence. Fixture success does not prove application caching, authentication,
-backend behavior, real Cloudflare preview/promotion, or release/route recovery.
+evidence. Local fixture success alone does not prove application caching,
+authentication, backend behavior, real Cloudflare preview/promotion, or
+release/route recovery.
+
+### Isolated provider preview acceptance
+
+The [provider record](website-runtime-acceptance.json) now identifies two
+nonproduction Workers in the Studio account. Their HTTPS release metadata
+matches the shipping source SHA, artifact digest, and fixture candidate ID.
+Both pass static-asset and unknown-route checks. Astro preserves its custom
+404 and script-free HTML; Next.js additionally passes real cookie-dependent
+rendering, private cache headers, cookie/query route handling, and application
+module byte comparison.
+
+Both initial attempts retained failed state. Astro's generic Python probe was
+blocked with Cloudflare error 1010; a reproducing test and an explicit Studio
+probe identifier resolve it. Next.js metadata passed but its first HTML
+request returned 404; a later read returned the expected HTML. Reconciliation
+passes without redeployment. The read-only cf deployment API confirms each
+Worker still has exactly its original deployment/version.
+
+Local follow-up validation passes all 136 Python tests with both native
+Workers suites enabled, four Swift tests, actionlint, and runtime assembly.
+The fixture commit's hosted push and PR runs pass, including the Linux workerd
+job. Hosted validation of the subsequent probe change is tracked separately.
+Test-environment production promotion, prior complete release/routing recovery,
+and all actual product cutovers remain open. Keep the two fixture Workers for
+those exercises and remove them after provider acceptance finishes.
