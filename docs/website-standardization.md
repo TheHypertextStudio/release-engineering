@@ -19,11 +19,11 @@ Curfew's current source uses `landing/` and `docs/`. Its divergent primary check
 
 ## Provider access and recovery
 
-- Willie authorized the `cf` device flow. The named `hypertext-studio` profile now exposes Studio account `2500680a3b2b0fe6a011c1c25fed5008`; use `--profile hypertext-studio` explicitly. Read-only inventory captured both Pages projects, production recovery deployments, the five supporting Workers' active/previous versions, D1 metadata, active-version binding names/types, and frontend CNAMEs. The live webmention Worker uses the existing Studio D1 database; Micropub alone has the GitHub write token binding. No provider resource or production route has changed.
+- Willie authorized the `cf` device flow. The named `hypertext-studio` profile now exposes Studio account `2500680a3b2b0fe6a011c1c25fed5008`; use `--profile hypertext-studio` explicitly. Read-only inventory captured both Pages projects, production recovery deployments, the five supporting Workers' active/previous versions, D1 metadata, active-version binding names/types, and frontend CNAMEs. The live webmention Worker uses the existing Studio D1 database; Micropub alone has the GitHub write token binding. No customer resource or production route has changed.
 - Vercel access is available in `williecubed-projects`. LogDate's canonical origin is `https://logdate.app`; Docket's is `https://clearthedocket.com`. The inventory records project IDs and currently observed production deployment IDs as recovery targets.
 - Mintlify dashboard access is available in `hypertextstudio`. Docket publishes `TheHypertextStudio/athena-web`, `apps/docs`, `main`; its latest successful docs update is source `0aadf2bd2669119ee8f99a1474e7fbac85273f57`. Curfew has an existing unconnected project. Hosted previews are unavailable because the Pro trial ended; retain pinned local previews. Contributor roles and API entitlement remain separate checks.
 - Docket's active `.mintlify.dev/docs` origin and the dashboard's `.mintlify.site/docs` origin both serve its docs. Public `clearthedocket.com/docs` currently emits canonical tags for `docket.hypertext.studio/docs`; the latter redirects back to the canonical application origin. Reconcile the Mintlify site address during adoption without changing public paths. Do not replace the proven `.dev` proxy merely because the dashboard displays another hostname.
-- Anonymous home/docs requests succeeded for all six surfaces. Authenticated journeys, provider errors/latency/usage, complete route/authentication contracts, live route/custom-domain capture, and isolated provider previews remain outstanding.
+- Anonymous home/docs requests succeeded for all six surfaces. Authenticated journeys, provider errors/latency/usage, complete route/authentication contracts, and live route/custom-domain capture remain outstanding. Isolated framework previews are recorded below.
 
 ## Local implementation evidence
 
@@ -78,7 +78,25 @@ Worker still has exactly its original deployment/version.
 Local follow-up validation passes all 136 Python tests with both native
 Workers suites enabled, four Swift tests, actionlint, and runtime assembly.
 The fixture commit's hosted push and PR runs pass, including the Linux workerd
-job. Hosted validation of the subsequent probe change is tracked separately.
-Test-environment production promotion, prior complete release/routing recovery,
-and all actual product cutovers remain open. Keep the two fixture Workers for
-those exercises and remove them after provider acceptance finishes.
+job. Both hosted runs at the subsequent probe-change commit also pass.
+
+### Isolated test-production acceptance
+
+The original retained Astro and Next.js ZIPs now serve through the production
+overlay on two additional test Workers. Their archive and configuration digests
+are unchanged. Both environments pass strict release identity and no-store
+checks; a real request with an incorrect expected artifact digest is rejected.
+Astro HTML and its static asset match their archive bytes exactly. Each Next.js
+environment serves six checked application modules with matching archive bytes,
+and passes Alice/Bob/anonymous/Alice isolation plus the cookie/query handler.
+Repeated operator acceptance reuses each existing deployment; read-only cf
+records confirm one deployment per test Worker. The provider version settings
+also confirm ASSETS, the exact three metadata values, compatibility date/flags,
+and the native module entrypoint.
+
+These are operator fixture exercises using the shared site adapter. They are
+not hosted owner candidate admission or human product promotion authorization.
+The recorded production-test version IDs and retained ZIPs are recovery
+baselines; prior complete release/routing recovery and all actual product
+cutovers remain open. Keep all four fixture Workers for those exercises and
+remove them after provider acceptance finishes.

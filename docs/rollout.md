@@ -96,8 +96,14 @@ Two isolated framework previews now pass HTTPS metadata, HTML/assets, and 404
 checks on Cloudflare. The Next.js fixture also passes viewer isolation and
 private cache header checks. Initial failures are retained in
 [website-runtime-acceptance.json](website-runtime-acceptance.json), followed by
-successful reconciliation of the same provider deployments. Production test
-promotion and complete release/routing recovery still require acceptance.
+successful reconciliation of the same provider deployments. The same retained
+archives also pass the production overlay on two isolated test Workers, without
+rebuilding. HTTPS checks compare Astro HTML and static assets with archive
+bytes, verify six Next.js modules per environment, reject a wrong release
+digest, and exercise private viewer rendering. Read-only provider deployment
+records prove that repeated operator acceptance did not redeploy either test
+Worker. These operator fixtures do not provide product promotion authorization.
+Complete release/routing recovery and hosted product promotion remain open.
 
 The first signed Curfew candidate must pass hosted validation, notarization,
 installation and launch on supported Macs. The reviewer must inspect its
