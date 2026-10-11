@@ -1,0 +1,22 @@
+{
+  "name": "@thehypertextstudio/workers-next-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "build:worker": "opennextjs-cloudflare build && wrangler types --config wrangler.json --env staging --include-runtime=false --strict-vars=false && tsc -p tsconfig.worker.json && node ../assemble.mjs next"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "1.20.10",
+    "next": "16.3.8",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "rclone.js": "0.6.6"
+  },
+  "devDependencies": {
+    "@types/node": "26.3.0",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3"
+  }
+}
+

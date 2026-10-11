@@ -1,0 +1,75 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "account_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "name": "studio-astro-fixture",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-10",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "base_dir": ".",
+  "find_additional_modules": true,
+  "no_bundle": true,
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": [
+        "**/*.js",
+        "**/*.mjs"
+      ],
+      "fallthrough": true
+    },
+    {
+      "type": "CompiledWasm",
+      "globs": [
+        "**/*.wasm"
+      ],
+      "fallthrough": true
+    }
+  ],
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/__studio/release"
+    ],
+    "not_found_handling": "404-page"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "staging": {
+      "name": "studio-astro-fixture-staging",
+      "vars": {
+        "STUDIO_SOURCE_SHA": "",
+        "STUDIO_ARTIFACT_SHA256": "",
+        "STUDIO_CANDIDATE_ID": ""
+      },
+      "assets": {
+        "directory": "dist",
+        "binding": "ASSETS",
+        "run_worker_first": [
+          "/__studio/release"
+        ],
+        "not_found_handling": "404-page"
+      }
+    },
+    "production": {
+      "name": "studio-astro-fixture-production",
+      "vars": {
+        "STUDIO_SOURCE_SHA": "",
+        "STUDIO_ARTIFACT_SHA256": "",
+        "STUDIO_CANDIDATE_ID": ""
+      },
+      "assets": {
+        "directory": "dist",
+        "binding": "ASSETS",
+        "run_worker_first": [
+          "/__studio/release"
+        ],
+        "not_found_handling": "404-page"
+      }
+    }
+  }
+}

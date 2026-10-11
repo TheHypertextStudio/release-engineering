@@ -85,6 +85,13 @@ reconciliation, provider access gaps, and local implementation evidence. The
 Workers site artifacts. No company website cutover or legacy hosting retirement
 has been accepted. Mintlify remains the product documentation platform.
 
+Packaged Astro and Next.js/OpenNext fixtures now pass local workerd checks
+for release identity, HTML/modules/assets, 404s, and cookie-dependent rendering.
+Their native bundle is produced before archiving; local staging and production
+extract the same shipping archive without rebuilding. Hosted runtime CI and
+real provider preview/promotion/recovery are tracked separately. This does not
+establish product compatibility, authenticated acceptance, or a hosting cutover.
+
 The first signed Curfew candidate must pass hosted validation, notarization,
 installation and launch on supported Macs. The reviewer must inspect its
 shipping bytes and record licensed delivery and update evidence. A staging or

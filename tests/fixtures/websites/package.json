@@ -1,0 +1,24 @@
+{
+  "name": "@thehypertextstudio/workers-runtime-fixtures",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.20.0",
+      "onFail": "download"
+    }
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "pnpm --recursive --workspace-concurrency=2 build:worker"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261011.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.148.0"
+  }
+}
