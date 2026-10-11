@@ -18,6 +18,23 @@ class WorkflowPermissionsTests(unittest.TestCase):
         self.assertEqual(acceptance['env']['WRANGLER_SEND_METRICS'], 'false')
         self.assertNotIn('secrets.', str(job))
 
+    def test_native_cache_acceptance_runs_with_installed_framework_dependencies(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = yaml.load((root / '.github/workflows/ci.yml').read_text(), Loader=yaml.BaseLoader)
+        steps = workflow['jobs']['framework-runtime']['steps']
+        install = next(i for i, step in enumerate(steps) if step.get('run') == 'pnpm install --frozen-lockfile')
+        cache = next((i for i, step in enumerate(steps) if 'test_opennext_cache.py' in step.get('run', '')), None)
+        self.assertIsNotNone(cache, 'Native R2 acceptance requires the installed OpenNext/Wrangler fixture')
+        self.assertLess(install, cache)
+        self.assertEqual(steps[cache]['env']['STUDIO_FRAMEWORK_WORKERS_TESTS'], '1')
+        import os
+        import runpy
+        from unittest.mock import patch
+        with patch.dict(os.environ, {'STUDIO_NATIVE_WORKERS_TESTS': '1', 'STUDIO_FRAMEWORK_WORKERS_TESTS': '0'}):
+            namespace = runpy.run_path(str(root / 'tests/test_opennext_cache.py'))
+        self.assertTrue(namespace['NativeOpenNextCacheTests'].__unittest_skip__,
+                        'Native-only jobs do not install the framework fixture')
+
     def test_package_write_is_available_only_to_production_promotion(self):
         root = Path(__file__).resolve().parents[1] / '.github/workflows'
         promotion = yaml.load((root / 'promote.yml').read_text(), Loader=yaml.BaseLoader)

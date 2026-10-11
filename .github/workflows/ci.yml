@@ -31,6 +31,11 @@ jobs:
           STUDIO_FRAMEWORK_WORKERS_TESTS: '1'
           WRANGLER_SEND_METRICS: 'false'
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Verify retained native OpenNext cache and Images packaging
+        run: python -m unittest discover -s tests -p test_opennext_cache.py -v
+        env:
+          STUDIO_FRAMEWORK_WORKERS_TESTS: '1'
+          WRANGLER_SEND_METRICS: 'false'
   verify:
     runs-on: macos-26
     timeout-minutes: 25

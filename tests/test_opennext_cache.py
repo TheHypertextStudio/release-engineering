@@ -215,8 +215,8 @@ class OpenNextCacheTests(unittest.TestCase):
         self.assertFalse(any(command[3] == 'deploy' for command in self.calls))
 
 
-@unittest.skipUnless(os.environ.get('STUDIO_NATIVE_WORKERS_TESTS') == '1',
-                     'Set STUDIO_NATIVE_WORKERS_TESTS=1 for pinned Wrangler R2 acceptance')
+@unittest.skipUnless(os.environ.get('STUDIO_FRAMEWORK_WORKERS_TESTS') == '1',
+                     'Set STUDIO_FRAMEWORK_WORKERS_TESTS=1 with installed fixtures for native R2 acceptance')
 class NativeOpenNextCacheTests(unittest.TestCase):
     def test_pinned_native_keys_and_local_r2_roundtrip_from_detached_archive(self):
         from studio.ci import pack_tree, unpack
