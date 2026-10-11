@@ -17,6 +17,7 @@ repository: studio/example
 owner_repository: studio/example
 toolchain:
   python: ">=3.11"
+  node: "24.20.0"
 components:
   - id: app
     kind: swiftpm
@@ -78,6 +79,29 @@ class CISetupTests(unittest.TestCase):
                 with self.assertRaisesRegex(CandidateError, 'product root'):
                     setup(product, candidate_directory=candidate, validate_only=True)
             execute.assert_not_called()
+
+    def test_validate_only_emits_exact_node_without_installing_tools_or_credentials(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            product, _ = self.prepare(root)
+            output = root / 'output'
+            with patch.dict(os.environ, {'GITHUB_OUTPUT': str(output), 'NODE_AUTH_TOKEN': 'fake-token', 'RUNNER_TEMP': str(root)}, clear=True), \
+                 patch('studio.ci_setup.execute') as execute:
+                setup(product, validate_only=True)
+            self.assertIn('node=24.20.0\n', output.read_text())
+            self.assertFalse((root / 'studio-npmrc').exists())
+            execute.assert_not_called()
+
+    def test_node_range_cannot_select_an_unpinned_workflow_runtime(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            product, _ = self.prepare(root)
+            declaration = product / 'studio.yaml'
+            for value in ('">=24"', 'null', 'false', '0', '""'):
+                with self.subTest(value=value):
+                    declaration.write_text(DECLARATION.replace('"24.20.0"', value))
+                    with self.assertRaisesRegex(CandidateError, 'exact Node'):
+                        setup(product, validate_only=True)
 
 
 if __name__ == '__main__':

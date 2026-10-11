@@ -162,3 +162,29 @@ Sparkle tools had not yet been resolved; resolving the existing Swift package
 removed that prerequisite failure. Parallel product-root changes briefly
 exposed four fixture/compatibility failures; those were fixed before the final
 complete run.
+
+## Lifecycle workflow compatibility and credential precedence
+
+Candidate and validation workflows now read and validate the declared exact
+Node version before selecting the native runtime. Promotion selects the reviewed
+candidate's Node pin after source, policy, lock, root and engine preflight. These
+checks run with the installed dispatcher in Python isolated mode, before
+credential preparation; the exact candidate runtime is restored only for the
+final promotion command. Default-root v0.1.7 candidates remain supported without
+calling newer helper modules or flags after that boundary. Legacy candidates
+cannot claim a newly scoped product root.
+
+Private registry setup receives the job token before dependency preparation.
+Candidate signing credentials are prepared before diagnostics and assembly.
+Declared managed credentials remain authoritative across later workflow steps;
+repository secrets are fallbacks only when no managed binding is declared.
+Denied or empty managed bindings fail before stale values can be exported.
+
+Verification includes an offline retained v0.1.7 runtime boundary, source-package
+shadowing protection, managed-binding denial and credential export precedence.
+The complete 199-test Python suite passes with both native Workers suites enabled
+on Node 24.20.0, together with four Swift tests, actionlint, runtime assembly and
+`git diff --check`. This includes the independently committed lazy variable API
+fix. Hosted workflow execution, real signing, private package delivery and
+provider promotion remain external acceptance gates; no push or release was
+performed for these changes.

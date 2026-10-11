@@ -2,6 +2,7 @@
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -33,6 +34,13 @@ def setup(root, *, candidate_directory=None, validate_only=False):
         actual = execute(['git','rev-parse','HEAD'],cwd=implementation,capture=True)
         if actual != candidate.data['tooling_revision'] or actual != lock.get('revision'):
             raise CandidateError('Promotion must execute the candidate tooling revision')
+    node = config['toolchain'].get('node', '')
+    if 'node' in config['toolchain'] and (not isinstance(node, str) or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', node)):
+        raise CandidateError('CI requires an exact Node version')
+    if os.environ.get('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+            for name in ('node', 'java', 'dotnet'):
+                target.write(f'{name}={config["toolchain"].get(name, "")}\n')
     if validate_only:
         return config
     xcode = config['toolchain'].get('xcode')
@@ -49,10 +57,6 @@ def setup(root, *, candidate_directory=None, validate_only=False):
         if os.environ.get('GITHUB_ENV'):
             with open(os.environ['GITHUB_ENV'],'a') as target:
                 target.write(f'DEVELOPER_DIR={matches[0]}\n')
-    if os.environ.get('GITHUB_OUTPUT'):
-        with open(os.environ['GITHUB_OUTPUT'],'a') as target:
-            for name in ('java','dotnet'):
-                target.write(f'{name}={config["toolchain"].get(name,"")}\n')
     if os.environ.get('NODE_AUTH_TOKEN'):
         import tempfile
         path=Path(os.environ.get('RUNNER_TEMP',tempfile.gettempdir()))/'studio-npmrc'

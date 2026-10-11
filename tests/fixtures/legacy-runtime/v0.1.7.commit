@@ -1,0 +1,15 @@
+tree fda58f95b478651eab095fc906e7bdee1b40b96e
+parent 3f8abedf363b8b312e2238c99e8e9fa2e8e2dc96
+author Willie Chalmers III <willie@williecubed.me> 1791692833 -0700
+committer Willie Chalmers III <willie@williecubed.me> 1791693024 -0700
+
+feat(cli): journal website recovery and select development targets
+
+Persist immutable recovery context and reconcile partial provider steps.
+Recheck the active version, service environment and all routing scopes
+before each write; refuse unrelated deployment or routing drift.
+
+Allow multi-package repositories to declare a default development
+component without changing build, check or setup selection.
+
+Co-authored-by: Codex <noreply@openai.com>
