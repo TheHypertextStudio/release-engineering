@@ -151,3 +151,51 @@ Use `prior_version_id` and `prior_routing_sha256` from `current.json` as the liv
 Restore validates the record and retained file hashes, checks that the live version and route/domain digest still match the operator's reviewed state, uses the pinned Wrangler `rollback <version-id>`, then restores routes, custom-domain origins and subdomain flags through Worker-scoped Cloudflare endpoints. The subdomain write includes Wrangler's pinned `Cloudflare-Workers-Script-Api-Date: 2025-08-01` compatibility header. The command persists `.restore.json` beside the recovery record (or uses `--journal`) before its first mutation. That journal binds the record hash, current config identity, original reviewed version, and original per-scope route/domain/subdomain snapshots. If a provider call fails or the process stops before the final receipt, rerun restore with the same record, journal, confirmation, and original start-state guards; it reconciles already-restored scopes and repeats only scopes still at their recorded original values. A newer third version or any route/domain/subdomain state outside the journaled original and target snapshots stops before further mutation. The route endpoint replaces only the selected Worker environment's routes; custom-domain writes refuse to override an existing origin or DNS record. Database and object-store resources are not changed.
 
 Pages/Vercel cutovers retain their old provider deployment separately. Local mocked contract tests do not establish the real failed-probe/retry/rollback exercise or authenticated production acceptance; those remain explicit provider gates.
+
+## Retained OpenNext R2 cache
+
+Declare `deploy.opennext_cache.directory: .open-next/cache` when a Workers site
+uses OpenNext's `NEXT_INC_CACHE_R2_BUCKET`. Keep the complete native cache tree
+in the reviewed archive. Each environment must declare that binding exactly
+once with a separate bucket name. Production and staging bucket identities,
+including any preview bucket aliases, cannot overlap. An optional environment
+variable `NEXT_INC_CACHE_R2_PREFIX` selects a relative object prefix; its default
+is `incremental-cache`.
+
+The adapter follows the pinned OpenNext 1.20.10 `getCacheAssets` and
+`computeCacheKey` layout: `cache/<buildId>/<path>.cache` and
+`cache/__fetch/<buildId>/<path>` become
+`<prefix>/<buildId>/<sha256('/' + path)>.cache` or `.fetch`. It requires one
+retained build, distinct keys, safe files and a bounded prefix. Native Images
+configuration (`images: {"binding": "IMAGES"}` with optional boolean `remote`)
+is accepted and must be explicit in both environments. The cache build ID must
+match the native `BUILD_ID` file in the retained asset directory.
+
+Before uploading the Worker, pinned Wrangler uploads the exact retained bytes
+with `r2 object put --remote`, reads each object with `r2 object get --remote`,
+and checks SHA-256. This path never invokes OpenNext's source dependency
+resolver, builds source, or provisions buckets. A missing bucket or missing
+object permission fails before Worker upload. Jurisdiction is a bounded opaque
+identifier passed unchanged, matching the pinned native optional string field;
+provider support is checked by the native object operations. Three attempts cover ambiguous
+native command failures by repeating the same bucket, key and bytes.
+
+Production records every cache object in the existing durable promotion journal.
+Receipt slots are namespaced by immutable candidate ID and component, allowing
+dependent candidates in the same journal. The identity binds the account,
+Worker, environment, artifact metadata,
+bucket, jurisdiction and complete cache inventory. Interrupted runs retain
+completed object receipts and retry failed or running operations. A changed
+identity cannot reuse those receipts. Promotion rechecks the current human
+authorization immediately before each remote object upload or retry and before
+the final Worker upload; revocation stops further writes and preserves receipts. Staging keeps its receipt beneath the
+candidate directory in `.studio-cache`; neither environment uses preview bucket
+selection. Provider object read/write permissions, image transformations,
+remote cache delivery and production rollback acceptance remain independent
+external gates. Seeding does not delete old build keys or restore runtime cache
+mutations during rollback.
+
+Local acceptance uses the same adapter with an explicit local target and a
+separate receipt identity. The native tests round-trip raw objects through
+Wrangler, compare keys with pinned OpenNext, and run real Next archives with
+R2 incremental cache after extraction.

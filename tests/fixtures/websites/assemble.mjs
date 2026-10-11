@@ -23,3 +23,7 @@ try {
 await cp(profile === 'astro' ? 'dist' : '.open-next/assets',
   profile === 'astro' ? '.artifact/assets' : '.artifact/.open-next/assets', { recursive: true });
 
+
+if (profile === 'next') {
+  await cp('.open-next/cache', '.artifact/.open-next/cache', { recursive: true });
+}

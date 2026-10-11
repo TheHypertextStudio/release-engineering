@@ -19,7 +19,7 @@ import urllib.request
 
 from studio.candidate import sha256
 from studio.ci import pack_tree, unpack
-from studio.websites import workers_site_inputs
+from studio.websites import workers_site_inputs, seed_workers_site_cache
 
 
 FIXTURES = Path(__file__).parent / 'fixtures/websites'
@@ -38,6 +38,16 @@ def request(origin, path, *, cookie=None):
 @contextlib.contextmanager
 def workerd(build, component, artifact, environment, directory):
     arguments, expected = workers_site_inputs(component, artifact, environment, build, FIXTURES / component['id'])
+    if component['id'] == 'next':
+        def native_cache(command, **kwargs):
+            result = subprocess.run(command, **kwargs, text=True, capture_output=True,
+                env={**os.environ, 'WRANGLER_SEND_METRICS': 'false', 'CI': 'true'})
+            if result.returncode:
+                raise AssertionError(result.stdout + result.stderr)
+        seed_workers_site_cache(component, expected, environment, build,
+            arguments[arguments.index('--config') + 1],
+            [str((FIXTURES / 'node_modules/.bin/wrangler').resolve())],
+            runner=native_cache, target='local')
     with socket.socket() as listener:
         listener.bind(('127.0.0.1', 0))
         port = listener.getsockname()[1]
@@ -96,6 +106,7 @@ class FrameworkWorkersRuntimeTests(unittest.TestCase):
                     'config': 'wrangler.json', 'entrypoint': 'worker.js',
                     'assets': 'assets' if framework == 'astro' else '.open-next/assets',
                     'environments': {'staging': 'staging', 'production': 'production'},
+                    **({'opennext_cache': {'directory': '.open-next/cache'}} if framework == 'next' else {}),
                 }}
                 # Two independently extracted shipping roots use the same zip bytes.
                 # Promotion never invokes a framework build or uses node_modules.
@@ -138,6 +149,7 @@ class FrameworkWorkersRuntimeTests(unittest.TestCase):
             unpack(archive, build)
             component = {'id': 'next', 'path': '.', 'deploy': {
                 'config': 'wrangler.json', 'entrypoint': 'worker.js', 'assets': '.open-next/assets',
+                'opennext_cache': {'directory': '.open-next/cache'},
                 'environments': {'staging': 'staging', 'production': 'production'},
             }}
             artifact = {'source_sha': 'b' * 40, 'sha256': sha256(archive), 'candidate_id': '124-1'}

@@ -5,6 +5,7 @@ from fnmatch import fnmatchcase
 import os
 from pathlib import Path
 import re
+import subprocess
 import tempfile
 from urllib.parse import urlsplit
 from urllib.error import HTTPError, URLError
@@ -19,7 +20,7 @@ no_bundle find_additional_modules preserve_file_names base_dir rules assets env 
 workers_dev preview_urls vars kv_namespaces r2_buckets d1_databases services durable_objects
 vectorize hyperdrive queues analytics_engine_datasets workflows pipelines artifacts
 dispatch_namespaces secrets_store_secrets ratelimits migrations exports observability logpush
-placement limits tail_consumers version_metadata keep_vars triggers ai browser
+placement limits tail_consumers version_metadata keep_vars triggers ai browser images
 wasm_modules text_blobs data_blobs upload_source_maps'''.split())
 RESOURCE_KEYS = {
     'kv_namespaces': ('kv', ('id',)), 'r2_buckets': ('r2', ('bucket_name',)),
@@ -646,6 +647,8 @@ def _resource_identities(binding):
     for key, (kind, fields) in RESOURCE_KEYS.items():
         for row in rows(binding.get(key, [])):
             identity(kind, row, fields)
+            if key == 'r2_buckets' and row.get('preview_bucket_name'):
+                identity(kind, {'bucket_name': row['preview_bucket_name']}, fields)
     for row in rows(binding.get('pipelines', [])):
         identity('pipeline', {'id': row.get('stream', row.get('pipeline'))}, ('id',))
     queues = binding.get('queues', {})
@@ -669,6 +672,12 @@ def _freeze_files(binding, root, entry, assets):
     unsupported = set(binding) - SITE_FIELDS
     if unsupported or binding.get('upload_source_maps'):
         raise ValueError('Workers site configuration contains unsupported build or filesystem options')
+    if 'images' in binding:
+        images = binding['images']
+        if (not isinstance(images, dict) or set(images) - {'binding', 'remote'}
+                or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', str(images.get('binding', '')))
+                or 'remote' in images and type(images['remote']) is not bool):
+            raise ValueError('Images requires a native binding and optional remote boolean')
     if 'base_dir' in binding:
         binding['base_dir'] = str(_inside(root, binding['base_dir'], 'Module root', directory=True))
     # Explicit CLI main/assets win over configuration, but remove ambiguous
@@ -781,7 +790,7 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
     for host in routes['staging']:
         if '*' in host or any(fnmatchcase(host, production) for production in routes['production']):
             raise ValueError('Staging route hosts must be explicitly isolated from production')
-    for key in (*RESOURCE_KEYS, 'queues', 'durable_objects', 'pipelines'):
+    for key in (*RESOURCE_KEYS, 'queues', 'durable_objects', 'pipelines', 'images'):
         if (key in config or any(key in binding for binding in scopes.values())) and any(
                 key not in binding for binding in scopes.values()):
             raise ValueError('Website resources require explicit environment bindings')
@@ -791,6 +800,7 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
     _freeze_files(config, root, entry, assets)
     for binding in scopes.values():
         _freeze_files(binding, root, entry, assets)
+    _opennext_cache_plan(component, metadata, environment, root, config)
     target = root / '.studio-site' / origin.name
     target.parent.mkdir(exist_ok=True)
     target.write_text(json.dumps(config, sort_keys=True) + '\n')
@@ -801,3 +811,128 @@ def workers_site_inputs(component, artifact, environment, build_root, bindings_r
                             ('STUDIO_CANDIDATE_ID', metadata['candidateId'])]:
         command.extend(['--var', f'{variable}:{value}'])
     return command, metadata
+
+
+def _opennext_cache_plan(component, metadata, environment, root, config):
+    """Map OpenNext 1.20.10 retained cache paths to native R2 object keys.
+
+    This matches getCacheAssets and computeCacheKey in the pinned native source;
+    executing populateCache itself would resolve source dependencies and may
+    provision a bucket. Promotion only uploads these already reviewed bytes.
+    """
+    deploy = component['deploy']
+    scopes = [config['env'][deploy['environments'][scope]] for scope in ('staging', 'production')]
+    native_binding = 'NEXT_INC_CACHE_R2_BUCKET'
+    declared = deploy.get('opennext_cache')
+    uses_cache = any(any(row.get('binding') == native_binding for row in scope.get('r2_buckets', []))
+                     for scope in scopes)
+    if declared is None and not uses_cache:
+        return None
+    if not isinstance(declared, dict) or set(declared) != {'directory'}:
+        raise ValueError('OpenNext R2 cache requires a retained directory declaration')
+    cache = _inside(root, declared['directory'], 'OpenNext cache', directory=True)
+    selected = scopes[0 if environment == 'staging' else 1]
+    for scope in scopes:
+        rows = [row for row in scope.get('r2_buckets', []) if row.get('binding') == native_binding]
+        if len(rows) != 1 or not re.fullmatch(r'[a-z0-9][a-z0-9-]{1,61}[a-z0-9]', str(rows[0].get('bucket_name', ''))):
+            raise ValueError('OpenNext cache requires one explicit R2 bucket per environment')
+        jurisdiction = rows[0].get('jurisdiction')
+        # Wrangler 4.148.0 defines an optional string, not an enum. Preserve
+        # the reviewed opaque provider identity; native R2 validates support.
+        if jurisdiction is not None and (not isinstance(jurisdiction, str)
+                or not re.fullmatch(r'[a-z][a-z0-9-]{0,31}', jurisdiction)):
+            raise ValueError('OpenNext cache bucket jurisdiction must be a bounded identifier')
+    bucket = next(row for row in selected['r2_buckets'] if row['binding'] == native_binding)
+    variables = selected.get('vars', {})
+    if not isinstance(variables, dict):
+        raise ValueError('OpenNext cache variables must be a mapping')
+    prefix = variables.get('NEXT_INC_CACHE_R2_PREFIX', 'incremental-cache')
+    if not isinstance(prefix, str) or not re.fullmatch(r'[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*', prefix):
+        raise ValueError('OpenNext cache prefix must be a bounded relative object prefix')
+    entries = []
+    build_ids = set()
+    for file in sorted(cache.rglob('*')):
+        if not file.is_file():
+            continue
+        parts = file.relative_to(cache).parts
+        if any('\\' in part for part in parts) or parts[0].startswith('__fetch') and parts[0] != '__fetch':
+            raise ValueError('Invalid retained OpenNext cache path')
+        fetch = parts[0] == '__fetch'
+        if fetch:
+            parts = parts[1:]
+        if len(parts) < 2 or not re.fullmatch(r'[A-Za-z0-9_-]+', parts[0]):
+            raise ValueError('Invalid retained OpenNext cache path')
+        build_id = parts[0]
+        key = '/' + '/'.join(parts[1:])
+        if not fetch:
+            if not key.endswith('.cache') or key == '/.cache':
+                raise ValueError('Invalid retained OpenNext cache file')
+            key = key[:-6]
+        object_key = f'{prefix}/{build_id}/{hashlib.sha256(key.encode()).hexdigest()}.{ "fetch" if fetch else "cache"}'
+        if len(object_key.encode()) > 1024:
+            raise ValueError('OpenNext cache object key exceeds R2 limits')
+        build_ids.add(build_id)
+        entries.append({'file': str(file.relative_to(root)), 'key': object_key,
+                        'sha256': hashlib.sha256(file.read_bytes()).hexdigest()})
+    build_id_file = _inside(root, str(Path(deploy['assets']) / 'BUILD_ID'), 'OpenNext build ID')
+    build_id = build_id_file.read_text().strip()
+    if build_ids != {build_id} or len({row['key'] for row in entries}) != len(entries):
+        raise ValueError('OpenNext cache requires the retained asset build ID and distinct object keys')
+    return {'artifact': metadata, 'account_id': config['account_id'], 'worker': selected['name'],
+            'environment': environment, 'wrangler_environment': deploy['environments'][environment],
+            'bucket': bucket['bucket_name'], 'jurisdiction': bucket.get('jurisdiction'), 'entries': entries}
+
+
+def seed_workers_site_cache(component, metadata, environment, root, config_path, cli, *, runner,
+                            journal=None, journal_root=None, target='remote', authorize=None):
+    """Verify and seed retained bytes before deployment; never provision resources."""
+    root = Path(root).resolve()
+    config_path = Path(config_path)
+    plan = _opennext_cache_plan(component, metadata, environment, root, json.loads(config_path.read_text()))
+    if plan is None:
+        return None
+    if target not in ('local', 'remote'):
+        raise ValueError('OpenNext cache target must be local or remote')
+    # The test-only local target is deliberately separate from provider receipts.
+    plan['target'] = target
+    identity = hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()
+    if journal is None:
+        journal = PromotionJournal(Path(journal_root or root) / '.studio-cache' /
+                                   f'{component["id"]}-{environment}-{target}.json', metadata['artifactSha256'])
+    slot = f'{metadata["candidateId"]}:{component["id"]}:{environment}:{target}'
+    recorded = journal.data.setdefault('website_caches', {}).get(slot)
+    if recorded is not None and recorded != identity:
+        raise ValueError('OpenNext cache receipt identity differs from this deployment')
+    journal.data['website_caches'][slot] = identity
+    journal._save()
+    flags = ['--' + target, '--config', str(config_path), '--env', plan['wrangler_environment'],
+             '--env-file', os.devnull]
+    if plan['jurisdiction']:
+        flags.extend(['--jurisdiction', plan['jurisdiction']])
+    for entry in plan['entries']:
+        source = _inside(root, entry['file'], 'OpenNext cache file')
+        if hashlib.sha256(source.read_bytes()).hexdigest() != entry['sha256']:
+            raise ValueError('OpenNext cache source digest changed before upload')
+
+        def upload(entry=entry, source=source):
+            # Retry ambiguous responses by repeating the same bucket/key/bytes.
+            # GET verifies actual stored bytes before persisting completion.
+            for attempt in range(3):
+                try:
+                    if target == 'remote' and authorize is not None:
+                        authorize()
+                    runner([*cli, 'r2', 'object', 'put', f'{plan["bucket"]}/{entry["key"]}',
+                            '--file', str(source), *flags], cwd=root)
+                    with tempfile.TemporaryDirectory(prefix='studio-cache-readback-') as temporary:
+                        downloaded = Path(temporary) / 'object'
+                        runner([*cli, 'r2', 'object', 'get', f'{plan["bucket"]}/{entry["key"]}',
+                                '--file', str(downloaded), *flags], cwd=root)
+                        if not downloaded.is_file() or hashlib.sha256(downloaded.read_bytes()).hexdigest() != entry['sha256']:
+                            raise ValueError('OpenNext cache readback digest mismatch')
+                    return {'state': 'completed', 'bucket': plan['bucket'], 'key': entry['key'],
+                            'sha256': entry['sha256'], 'identity': identity}
+                except (OSError, subprocess.CalledProcessError):
+                    if attempt == 2:
+                        raise
+        journal.perform(f'website-cache:{slot}:{entry["key"]}', upload)
+    return {'state': 'completed', 'identity': identity, 'bucket': plan['bucket'], 'entries': len(plan['entries'])}
