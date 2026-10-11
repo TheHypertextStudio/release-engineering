@@ -15,13 +15,28 @@ from .providers import execute
 def prepare(config, *, signing=None):
     if signing is None: signing=os.environ.get('GITHUB_EVENT_NAME') not in {'workflow_dispatch','schedule'}
     bindings = config['release'].get('credential_bindings',{})
+    signing_variables = {'APPLE_CERTIFICATE_BASE64','APPLE_CERTIFICATE_PASSWORD',
+                         'SPARKLE_PRIVATE_KEY','APPLE_PROVISIONING_PROFILES_BASE64'}
+    fallback_variables = signing_variables | {'APPLE_API_PRIVATE_KEY','APPLE_API_KEY_ID',
+        'APPLE_API_ISSUER','VERCEL_TOKEN','CLOUDFLARE_API_TOKEN'}
+    selected = {name: os.environ[name] for name in fallback_variables if os.environ.get(name)}
     for variable, resource in bindings.items():
-        if not signing and variable in {'APPLE_CERTIFICATE_BASE64','APPLE_CERTIFICATE_PASSWORD','SPARKLE_PRIVATE_KEY','APPLE_PROVISIONING_PROFILES_BASE64'}:
+        if not signing and variable in signing_variables:
             continue
         segments = resource.split('/')
-        value = execute(['gcloud','secrets','versions','access',segments[-1],'--secret',segments[3],'--project',segments[1]],capture=True)
-        # The runner must mask a secret before it writes it to the job environment.
-        print(f'::add-mask::{value.replace(chr(10), "%0A").replace(chr(13), "%0D")}')
+        # A declared binding is authoritative. An access failure must not fall
+        # back to a stale repository secret for a different product.
+        selected[variable] = execute(['gcloud','secrets','versions','access',segments[-1],
+                                     '--secret',segments[3],'--project',segments[1]],capture=True)
+    for variable, value in sorted(selected.items()):
+        if not signing and variable in signing_variables:
+            continue
+        if not isinstance(value, str) or not value:
+            raise ValueError(f'Declared credential is empty: {variable}')
+        # Mask before publishing either a fetched binding or repository fallback
+        # to later workflow steps. Step-level secrets must not override this.
+        masked = value.replace('%', '%25').replace(chr(10), '%0A').replace(chr(13), '%0D')
+        print(f'::add-mask::{masked}')
         os.environ[variable] = value
         if os.environ.get('GITHUB_ENV'):
             delimiter = 'STUDIO_' + os.urandom(16).hex()
@@ -137,5 +152,6 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('mode',nargs='?',choices=['prepare','cleanup'],default='prepare')
     parser.add_argument('--root',type=Path,default=Path.cwd())
+    parser.add_argument('--signing',action='store_true',default=None)
     args=parser.parse_args()
-    cleanup() if args.mode == 'cleanup' else prepare(load_config(args.root / 'studio.yaml'))
+    cleanup() if args.mode == 'cleanup' else prepare(load_config(args.root / 'studio.yaml'),signing=args.signing)

@@ -37,21 +37,28 @@ jobs:
         with:
           python-version: '3.14.5'
       - name: Install the shared runtime
-        run: python -m pip install --disable-pip-version-check ./.studio-engine
+        run: python -I -m pip install --disable-pip-version-check ./.studio-engine
       - name: Resolve the declared product root
         id: product-root
         env:
           STUDIO_PRODUCT_ROOT: ${{ inputs.product_root }}
           STUDIO_TOOLING_REVISION: ${{ inputs.tooling_revision }}
-        run: python -m studio.product_root "$STUDIO_PRODUCT_ROOT" --tooling-revision "$STUDIO_TOOLING_REVISION"
+        run: python -I -m studio.product_root "$STUDIO_PRODUCT_ROOT" --tooling-revision "$STUDIO_TOOLING_REVISION"
+      - name: Read the declared toolchain before native setup
+        id: declared-toolchain
+        env:
+          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
+        run: python -I -m studio.ci_setup --source "$STUDIO_PRODUCT_ROOT_PATH" --validate-only
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: steps.declared-toolchain.outputs.node != ''
         with:
-          node-version: '24.19.0'
+          node-version: ${{ steps.declared-toolchain.outputs.node }}
       - name: Prepare the native toolchain
         id: toolchain
         env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
           STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.ci_setup --source "$STUDIO_PRODUCT_ROOT_PATH"
+        run: python -I -m studio.ci_setup --source "$STUDIO_PRODUCT_ROOT_PATH"
       - name: Prepare declared Java
         if: steps.toolchain.outputs.java != ''
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
@@ -74,35 +81,36 @@ jobs:
         uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f
       - name: Prepare the declared credential bindings
         env:
-          GH_TOKEN: ${{ github.token }}
-          NODE_AUTH_TOKEN: ${{ github.token }}
-          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.credentials --root "$STUDIO_PRODUCT_ROOT_PATH"
-      - name: Record release prerequisites
-        env:
-          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.diagnostics --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/prerequisites.json"
-      - name: Prepare dependencies
-        env:
-          GH_TOKEN: ${{ github.token }}
-          NODE_AUTH_TOKEN: ${{ github.token }}
-          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio --root "$STUDIO_PRODUCT_ROOT_PATH" setup
-      - name: Assemble and stage the immutable candidate
-        env:
-          STUDIO_TOOLING_REVISION: ${{ inputs.tooling_revision }}
-          GH_TOKEN: ${{ github.token }}
-          NODE_AUTH_TOKEN: ${{ github.token }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_PROVISIONING_PROFILES_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILES_BASE64 }}
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
           STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.ci create --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/candidate" --tooling-revision "$STUDIO_TOOLING_REVISION"
+        run: python -I -m studio.credentials --signing --root "$STUDIO_PRODUCT_ROOT_PATH"
+      - name: Record release prerequisites
+        env:
+          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
+        run: python -I -m studio.diagnostics --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/prerequisites.json"
+      - name: Prepare dependencies
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
+        run: python -I -m studio --root "$STUDIO_PRODUCT_ROOT_PATH" setup
+      - name: Assemble and stage the immutable candidate
+        env:
+          STUDIO_TOOLING_REVISION: ${{ inputs.tooling_revision }}
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
+        run: python -I -m studio.ci create --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/candidate" --tooling-revision "$STUDIO_TOOLING_REVISION"
       - name: Save candidate and review artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -116,12 +124,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           STUDIO_DISPATCH_TOKEN: ${{ secrets.STUDIO_DISPATCH_TOKEN }}
           STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.ci ready --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/candidate"
+        run: python -I -m studio.ci ready --root "$STUDIO_PRODUCT_ROOT_PATH" --output "$GITHUB_WORKSPACE/.studio/candidate"
       - name: Remove ephemeral signing credentials
         if: always()
         env:
           STUDIO_PRODUCT_ROOT_PATH: ${{ steps.product-root.outputs.product_root_path }}
-        run: python -m studio.credentials cleanup --root "$STUDIO_PRODUCT_ROOT_PATH"
+        run: python -I -m studio.credentials cleanup --root "$STUDIO_PRODUCT_ROOT_PATH"
       - name: Preserve release prerequisites and failure diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
