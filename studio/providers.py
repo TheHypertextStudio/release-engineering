@@ -63,7 +63,7 @@ def worker_plan(component, artifact, environment):
     return ["pnpm", "exec", "wrangler", "deploy", entrypoint, "--no-bundle", "--config", deploy["config"], *(["--env", binding] if binding != "default" else [])]
 
 
-def probe(url, *, expected_sha=None, expected_metadata=None, attempts=8, interval=3):
+def probe(url, *, expected_sha=None, attempts=8, interval=3):
     parsed = urllib.parse.urlparse(url)
     if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
         raise ValueError("Release probes require an HTTPS URL without credentials")
@@ -78,10 +78,6 @@ def probe(url, *, expected_sha=None, expected_metadata=None, attempts=8, interva
                     raise ValueError("Health response exceeded its bound")
                 if expected_sha is not None and json.loads(payload).get("source_sha") != expected_sha:
                     raise ValueError("Production health returned another source revision")
-                if expected_metadata is not None:
-                    actual = json.loads(payload)
-                    if not isinstance(actual, dict) or any(actual.get(key) != value for key, value in expected_metadata.items()):
-                        raise ValueError("Production health returned another website candidate")
                 return {"status": "passed", "url": url}
         except (OSError, ValueError):
             if attempt + 1 == attempts:
@@ -211,27 +207,13 @@ def deploy_worker(component, artifact, environment, build_root, bindings_root, v
     return {'state':'completed','artifact_sha256':artifact['sha256']}
 
 
-def deploy_site(component, artifact, environment, build_root, toolchain, *, bindings_root=None, runner=execute, journal=None, authorize=None):
+def deploy_site(component, artifact, environment, build_root, toolchain, *, runner=execute):
     deploy=component['deploy']; provider=deploy.get('provider')
     binding=deploy.get('environments',{}).get(environment)
     if binding is None: raise ValueError(f'Site lacks isolated {environment} bindings')
     health=deploy.get('health_urls',{}).get(environment)
     if not health: raise ValueError('Site requires a declared health probe')
-    if provider=='workers':
-        from .websites import workers_site_inputs, seed_workers_site_cache
-        parsed=urllib.parse.urlparse(health)
-        if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password:
-            raise ValueError('Website requires an HTTPS health probe without credentials')
-        cli=_native_cli('wrangler',toolchain.get('wrangler'))
-        command,metadata=workers_site_inputs(component,artifact,environment,build_root,bindings_root or build_root)
-        cache=seed_workers_site_cache(component,metadata,environment,build_root,
-            command[command.index('--config')+1],cli,runner=runner,journal=journal,
-            journal_root=bindings_root or build_root,authorize=authorize)
-        if authorize is not None: authorize()
-        runner([*cli,*command],cwd=build_root)
-        probe(health,expected_metadata=metadata)
-        return {'state':'completed','artifact_sha256':artifact['sha256'],'candidate_id':artifact['candidate_id'], **({'cache':cache} if cache else {})}
-    elif provider=='pages':
+    if provider=='pages':
         project=binding.get('project') if isinstance(binding,dict) else binding
         if not project: raise ValueError('Pages requires an explicit project')
         branch=deploy.get('production_branch','main') if environment=='production' else f'candidate-{artifact["source_sha"]}'

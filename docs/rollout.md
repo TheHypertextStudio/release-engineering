@@ -78,32 +78,10 @@ must verify the live credentials before they count as ready.
 
 ## Open acceptance
 
-Company website configuration and Mintlify standardization began October 10.
-The [website status record](website-standardization.md) contains scope, source
-reconciliation, provider access gaps, and local implementation evidence. The
-[website contract](websites.md) extends the existing lifecycle with prebuilt
-Workers site artifacts. No company website cutover or legacy hosting retirement
-has been accepted. Mintlify remains the product documentation platform.
-
-Packaged Astro and Next.js/OpenNext fixtures now pass local workerd checks
-for release identity, HTML/modules/assets, 404s, and cookie-dependent rendering.
-Their native bundle is produced before archiving; local staging and production
-extract the same shipping archive without rebuilding. Hosted runtime CI and
-real provider preview/promotion/recovery are tracked separately. This does not
-establish product compatibility, authenticated acceptance, or a hosting cutover.
-
-Two isolated framework previews now pass HTTPS metadata, HTML/assets, and 404
-checks on Cloudflare. The Next.js fixture also passes viewer isolation and
-private cache header checks. Initial failures are retained in
-[website-runtime-acceptance.json](website-runtime-acceptance.json), followed by
-successful reconciliation of the same provider deployments. The same retained
-archives also pass the production overlay on two isolated test Workers, without
-rebuilding. HTTPS checks compare Astro HTML and static assets with archive
-bytes, verify six Next.js modules per environment, reject a wrong release
-digest, and exercise private viewer rendering. Read-only provider deployment
-records prove that repeated operator acceptance did not redeploy either test
-Worker. These operator fixtures do not provide product promotion authorization.
-Complete release/routing recovery and hosted product promotion remain open.
+Company websites use their native framework, pnpm and Wrangler commands.
+Website deployment is outside this lifecycle engine. Mintlify remains the
+product documentation publisher. No company website cutover or legacy hosting
+retirement has been accepted by this cleanup.
 
 The first signed Curfew candidate must pass hosted validation, notarization,
 installation and launch on supported Macs. The reviewer must inspect its
@@ -132,37 +110,6 @@ Publish a corrected client with a higher build number. Service recovery must
 select a compatible previous artifact. Store releases remain subject to Apple
 approval and a fresh authorization check.
 
-## Retained OpenNext cache and Images contract
-
-The shared Workers frontend adapter now accepts native Images bindings and an
-explicit retained OpenNext R2 cache directory. It derives keys from native
-OpenNext 1.20.10's published implementation, validates both environments and
-preview bucket aliases, and uploads/reads exact reviewed bytes through pinned
-Wrangler before Worker deployment. Cache operation receipts bind the artifact
-and selected provider identities, survive partial failures in the production
-promotion journal, and resume completed object operations without re-uploading.
-No OpenNext source build, dependency resolution, bucket provisioning, secret
-creation, provider writes or production release was performed for this change.
-
-Implementation verification and external acceptance are distinct: synthetic
-fault cases cover retries, readback mismatch, identity drift and isolation;
-pinned Wrangler local R2 and Images packaging plus real framework archive
-acceptance cover native behavior. Remote cache permissions and seeding,
-Images transformations, real product/provider behavior, and rollback remain
-required before production adoption. Context7 documentation retrieval was
-attempted and blocked by its monthly quota; the exact installed native schemas
-and source supplied the command and serialization contract.
-
-Fresh verification passed all 180 Python tests with both
-`STUDIO_NATIVE_WORKERS_TESTS=1` and `STUDIO_FRAMEWORK_WORKERS_TESTS=1`, including
-the native R2 round-trip, detached Next cache delivery and authorization fault
-cases. Four Swift tests, actionlint, runtime assembly and `git diff --check`
-also passed. The initial new-checkout baseline failed only because the native
-Sparkle tools had not yet been resolved; resolving the existing Swift package
-removed that prerequisite failure. Parallel product-root changes briefly
-exposed four fixture/compatibility failures; those were fixed before the final
-complete run.
-
 ## Lifecycle workflow compatibility and credential precedence
 
 Candidate and validation workflows now read and validate the declared exact
@@ -189,34 +136,25 @@ fix. Hosted workflow execution, real signing, private package delivery and
 provider promotion remain external acceptance gates; no push or release was
 performed for these changes.
 
-## Worker recovery deployment envelope correction
+## Website machinery removal (2026-10-11)
 
-Recovery capture run 38165763297 stopped before producing a recovery record:
-the deployment reader expected a direct `deployments` object, while the
-Cloudflare transport preserves `result` and `result_info` when pagination
-metadata is present. The [official list deployments response](https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/)
-has exactly that envelope. The endpoint reader now accepts the transport's
-envelope as well as direct results, rejects ambiguous or malformed envelopes
-and rollout rows, and still requires one active version at 100%. Generic
-transport and custom-domain pagination are unchanged.
+The frontend Workers deployment/caching/recovery adapter, Mintlify inspection
+client, website fixtures and framework CI job have been removed. Websites now
+use official OpenNext/Wrangler output and provider version operations directly;
+this repository does not replace them with another archive format, REST client,
+cache transport, probe protocol or activation flag. Detailed previous website
+experiments remain in Git history and ignored migration acceptance evidence.
+Published runtime tags and their archived bytes are unchanged.
 
-This correction is isolated on the published v0.1.8 source baseline; a candidate
-release version has not been assigned. It is unreleased source. Static checks
-are separate from recovery acceptance; no tests were added or manually run,
-and no provider request, release,
-tag or consumer pin change was performed for this correction. The failed
-capture remains retained evidence; a future authorized hosted capture must
-prove recovery against the real complete deployment.
+Existing native/package candidate and promotion APIs, source/root/lock guards,
+credential precedence, signing, macOS SDK, Cloud Run and standalone Worker
+adapters, legacy Pages/Vercel adapters and package helpers are preserved. The
+website-only identity protocol and its cache/recovery journals have no remaining
+execution path. The separate unmerged S3 transport draft is not integrated or
+published by this cleanup.
 
-## Recovery API operation diagnostics: source preparation
-
-Hosted capture 38168366416 verified the v0.1.9 executor checksum, then failed
-with HTTP 403 before retaining a recovery record. The denied endpoint is
-unknown from that run; no permission requirement can be inferred from it.
-The next source patch adds fixed operation labels to HTTP failures for the six
-existing capture reads and three restore writes, with an `unknown` fallback.
-It prints no raw method, URL, query, identifier, header, body or binding value.
-Request order, response guards, pagination and capture/restore/CAS behavior are
-unchanged. Static checks do not establish provider acceptance. No tests were
-added or manually run, and no retry, permission change or provider request was
-performed for this source preparation. Release and hosted diagnosis are pending.
+Static source/workflow checks and mandatory commit hooks are recorded separately.
+No new/manual tests, dependency installation, provider operation, product
+activation, push, PR, runtime publication or website cutover is claimed. The
+historical verification counts above describe the earlier source, not this
+reduced suite. Existing ordinary CI and release gates remain in their workflows.

@@ -11,11 +11,11 @@ class ProviderTests(unittest.TestCase):
         class Response:
             def __enter__(self): return self
             def __exit__(self, *args): pass
-            def geturl(self): return 'https://fixture.example/__studio/release'
-            def read(self, limit): return b'{"candidateId":"123-1"}'
+            def geturl(self): return 'https://fixture.example/health'
+            def read(self, limit): return b'{"source_sha":"reviewed-source"}'
         with patch('studio.providers.urllib.request.urlopen', return_value=Response()) as open_url:
-            result = module.probe('https://fixture.example/__studio/release',
-                                  expected_metadata={'candidateId': '123-1'}, attempts=1)
+            result = module.probe('https://fixture.example/health',
+                                  expected_sha='reviewed-source', attempts=1)
         request = open_url.call_args.args[0]
         self.assertEqual(request.get_header('User-agent'), 'Studio-Release-Probe/1.0')
         self.assertEqual(request.get_header('Accept'), 'application/json')

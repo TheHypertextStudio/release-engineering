@@ -22,9 +22,6 @@ jobs:
       - run: npm install --global pnpm@11.9.0
       - run: swift test --jobs 2
       - run: python -m unittest discover -s tests
-        env:
-          STUDIO_NATIVE_WORKERS_TESTS: '1'
-          WRANGLER_SEND_METRICS: 'false'
       - run: python scripts/build-release.py
       - name: Publish checksum-bound runtime
         env:
