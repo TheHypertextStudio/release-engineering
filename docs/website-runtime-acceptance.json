@@ -6,6 +6,86 @@
       "candidate_id": "20261010-1",
       "configuration_sha256": "393701629b5677bd61b5e7584beb4a24be026d6c643dd443f260dd633a82ba4c",
       "deployment_id": "9d3bd97c-d4d7-4d69-a577-de1151d65b45",
+      "environments": {
+        "production": {
+          "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+          "binding_names": [
+            "ASSETS",
+            "STUDIO_ARTIFACT_SHA256",
+            "STUDIO_CANDIDATE_ID",
+            "STUDIO_SOURCE_SHA"
+          ],
+          "candidate_id": "20261010-1",
+          "configuration_sha256": "393701629b5677bd61b5e7584beb4a24be026d6c643dd443f260dd633a82ba4c",
+          "deployment_count": 1,
+          "deployment_id": "3c08cb0a-3ffc-4387-abf0-c847de5de617",
+          "health_url": "https://studio-web-fixture-astro-1010-prod.hypertext-studio.workers.dev/__studio/release",
+          "provider_checks": {
+            "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+            "custom_404": "passed",
+            "html": "passed",
+            "html_bytes": "passed",
+            "negative_digest_probe": "rejected",
+            "release_metadata": "passed",
+            "script_free_html": "passed",
+            "static_asset": "passed",
+            "unknown_route_404": "passed"
+          },
+          "reconciled_without_redeployment": true,
+          "version_settings": {
+            "assets": {
+              "config": {
+                "base_path": "/",
+                "html_handling": "auto-trailing-slash",
+                "not_found_handling": "404-page",
+                "run_worker_first": [
+                  "/__studio/release"
+                ]
+              }
+            },
+            "compatibility_date": "2026-10-10",
+            "compatibility_flags": [
+              "nodejs_compat"
+            ],
+            "main_module": "worker.js",
+            "startup_time_ms": 3
+          },
+          "versions": [
+            {
+              "percentage": 100,
+              "version_id": "7122bfc6-51e3-4389-9ea8-ec3389d77488"
+            }
+          ],
+          "worker": "studio-web-fixture-astro-1010-prod"
+        },
+        "staging": {
+          "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+          "candidate_id": "20261010-1",
+          "configuration_sha256": "393701629b5677bd61b5e7584beb4a24be026d6c643dd443f260dd633a82ba4c",
+          "deployment_count": 1,
+          "deployment_id": "9d3bd97c-d4d7-4d69-a577-de1151d65b45",
+          "health_url": "https://studio-web-fixture-astro-1010-staging.hypertext-studio.workers.dev/__studio/release",
+          "provider_checks": {
+            "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+            "custom_404": "passed",
+            "html": "passed",
+            "html_bytes": "passed",
+            "negative_digest_probe": "rejected",
+            "release_metadata": "passed",
+            "script_free_html": "passed",
+            "static_asset": "passed",
+            "unknown_route_404": "passed"
+          },
+          "reconciled_without_redeployment": true,
+          "versions": [
+            {
+              "percentage": 100,
+              "version_id": "1a467bc8-8cf1-4df9-8102-2bfa0f75136c"
+            }
+          ],
+          "worker": "studio-web-fixture-astro-1010-staging"
+        }
+      },
       "health_url": "https://studio-web-fixture-astro-1010-staging.hypertext-studio.workers.dev/__studio/release",
       "history": [
         {
@@ -23,7 +103,18 @@
         "unknown_route_404": "passed"
       },
       "reconciled_without_redeployment": true,
-      "state": "preview-verified",
+      "recovery_baseline": {
+        "artifact_sha256": "0527db8d09322b43f10f7d9c516cf2ee9c064def25660171486ee15a9a7f5c2d",
+        "candidate_id": "20261010-1",
+        "configuration_sha256": "393701629b5677bd61b5e7584beb4a24be026d6c643dd443f260dd633a82ba4c",
+        "restore_exercise": "pending",
+        "route_capture": "pending",
+        "source_sha": "942e651354024071edd1074cbf49b54a3845a1fd",
+        "version_id": "7122bfc6-51e3-4389-9ea8-ec3389d77488"
+      },
+      "retry_deployment_count": 1,
+      "shipping_archive_unchanged": true,
+      "state": "test-production-verified",
       "versions": [
         {
           "percentage": 100,
@@ -37,6 +128,102 @@
       "candidate_id": "20261010-1",
       "configuration_sha256": "e81d53ddf90f0568398cf3f8fa720aa3887a9c5bfb69c2e0b185f7083baba94d",
       "deployment_id": "f8c32a8b-1f9d-487e-b724-e907bc77058d",
+      "environments": {
+        "production": {
+          "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+          "binding_names": [
+            "ASSETS",
+            "STUDIO_ARTIFACT_SHA256",
+            "STUDIO_CANDIDATE_ID",
+            "STUDIO_SOURCE_SHA"
+          ],
+          "candidate_id": "20261010-1",
+          "configuration_sha256": "e81d53ddf90f0568398cf3f8fa720aa3887a9c5bfb69c2e0b185f7083baba94d",
+          "deployment_count": 1,
+          "deployment_id": "e6c88df6-541b-43bd-bb2d-6896985f33c7",
+          "health_url": "https://studio-web-fixture-next-1010-prod.hypertext-studio.workers.dev/__studio/release",
+          "provider_checks": {
+            "application_modules": {
+              "/_next/static/chunks/0-6trmgr2jqxk.js": "a6c08d81e5956900c6bf1d922d6ab6befbfc60858a15c4079e8d3b2fdd093d90",
+              "/_next/static/chunks/0cz1d0mv5g_q7.js": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683",
+              "/_next/static/chunks/1-xt718kt92f4.js": "7ba433a48e2e74c8b01c0608d9c5f77f3b9db23b1e307402fc9110d5f710ca9f",
+              "/_next/static/chunks/20yg5sp9vqx38.js": "de3c9fe13d1411f0efaa316cc755b9c19de20c34b20d51e7fb4645f84c113239",
+              "/_next/static/chunks/37xqv5marfvn_.js": "85f327aaea649b977660eb43742d3e579b56a116db7059447c7f45d0d5e1597e",
+              "/_next/static/chunks/turbopack-239sp3r1tftb2.js": "efad402e155704cb6ffa2fb1e4f05d8cf63853d7dabf58df693390b5c1aaa23f"
+            },
+            "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+            "cookie_query_route_handler": "passed",
+            "html": "passed",
+            "negative_digest_probe": "rejected",
+            "private_cache_headers": "passed",
+            "release_metadata": "passed",
+            "static_asset": "passed",
+            "unknown_route_404": "passed",
+            "viewer_isolation": "passed"
+          },
+          "reconciled_without_redeployment": true,
+          "version_settings": {
+            "assets": {
+              "config": {
+                "base_path": "/",
+                "html_handling": "auto-trailing-slash",
+                "not_found_handling": "none",
+                "run_worker_first": [
+                  "/__studio/release"
+                ]
+              }
+            },
+            "compatibility_date": "2026-10-10",
+            "compatibility_flags": [
+              "nodejs_compat"
+            ],
+            "main_module": "worker.js",
+            "startup_time_ms": 16
+          },
+          "versions": [
+            {
+              "percentage": 100,
+              "version_id": "412fbc72-aa5f-445f-a529-bf3217296d32"
+            }
+          ],
+          "worker": "studio-web-fixture-next-1010-prod"
+        },
+        "staging": {
+          "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+          "candidate_id": "20261010-1",
+          "configuration_sha256": "e81d53ddf90f0568398cf3f8fa720aa3887a9c5bfb69c2e0b185f7083baba94d",
+          "deployment_count": 1,
+          "deployment_id": "f8c32a8b-1f9d-487e-b724-e907bc77058d",
+          "health_url": "https://studio-web-fixture-next-1010-staging.hypertext-studio.workers.dev/__studio/release",
+          "provider_checks": {
+            "application_modules": {
+              "/_next/static/chunks/0-6trmgr2jqxk.js": "a6c08d81e5956900c6bf1d922d6ab6befbfc60858a15c4079e8d3b2fdd093d90",
+              "/_next/static/chunks/0cz1d0mv5g_q7.js": "0973c1d64c88adc8e3c950410cb58b288f72118d5965b78049438deb8f2f9683",
+              "/_next/static/chunks/1-xt718kt92f4.js": "7ba433a48e2e74c8b01c0608d9c5f77f3b9db23b1e307402fc9110d5f710ca9f",
+              "/_next/static/chunks/20yg5sp9vqx38.js": "de3c9fe13d1411f0efaa316cc755b9c19de20c34b20d51e7fb4645f84c113239",
+              "/_next/static/chunks/37xqv5marfvn_.js": "85f327aaea649b977660eb43742d3e579b56a116db7059447c7f45d0d5e1597e",
+              "/_next/static/chunks/turbopack-239sp3r1tftb2.js": "efad402e155704cb6ffa2fb1e4f05d8cf63853d7dabf58df693390b5c1aaa23f"
+            },
+            "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+            "cookie_query_route_handler": "passed",
+            "html": "passed",
+            "negative_digest_probe": "rejected",
+            "private_cache_headers": "passed",
+            "release_metadata": "passed",
+            "static_asset": "passed",
+            "unknown_route_404": "passed",
+            "viewer_isolation": "passed"
+          },
+          "reconciled_without_redeployment": true,
+          "versions": [
+            {
+              "percentage": 100,
+              "version_id": "7d927070-5bc8-4253-8406-7833ee6cd10c"
+            }
+          ],
+          "worker": "studio-web-fixture-next-1010-staging"
+        }
+      },
       "health_url": "https://studio-web-fixture-next-1010-staging.hypertext-studio.workers.dev/__studio/release",
       "history": [
         {
@@ -56,7 +243,18 @@
         "viewer_isolation": "passed"
       },
       "reconciled_without_redeployment": true,
-      "state": "preview-verified",
+      "recovery_baseline": {
+        "artifact_sha256": "280b85be9716b4607d07a14318247496b479b78b7876722fa8f056b4ca628a3a",
+        "candidate_id": "20261010-1",
+        "configuration_sha256": "e81d53ddf90f0568398cf3f8fa720aa3887a9c5bfb69c2e0b185f7083baba94d",
+        "restore_exercise": "pending",
+        "route_capture": "pending",
+        "source_sha": "942e651354024071edd1074cbf49b54a3845a1fd",
+        "version_id": "412fbc72-aa5f-445f-a529-bf3217296d32"
+      },
+      "retry_deployment_count": 1,
+      "shipping_archive_unchanged": true,
+      "state": "test-production-verified",
       "versions": [
         {
           "percentage": 100,
@@ -66,18 +264,21 @@
       "worker": "studio-web-fixture-next-1010-staging"
     }
   },
+  "customer_cutover": false,
   "fixture_source_sha": "942e651354024071edd1074cbf49b54a3845a1fd",
-  "observed_at": "2026-10-11T02:07:30.425079+00:00",
+  "observed_at": "2026-10-11T02:25:51.924025+00:00",
+  "operator_fixture_exercise": true,
+  "product_promotion_authorization": false,
   "provider_module_sha256": "a0561299dfef9f4d6520f5020a97bd49a09d6f98acf35b4e5555796d2f0cf350",
   "remaining": [
-    "test-environment production promotion of identical archive bytes",
+    "hosted owner candidate admission and reviewed product promotion",
     "previous complete release and route/domain recovery",
     "product framework compatibility and authenticated acceptance",
     "production hosting cutover and observation",
     "legacy hosting retirement"
   ],
   "schema": 1,
-  "scope": "isolated-framework-provider-previews",
+  "scope": "isolated-framework-provider-environments",
   "toolchain": {
     "astro": "7.2.9",
     "next": "16.3.8",

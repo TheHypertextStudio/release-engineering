@@ -37,6 +37,9 @@ because these fixtures do not use R2 cache population.
 The Next.js fixture uses OpenNext's default dummy cache adapters. It proves
 packaged execution and request isolation, not ISR, cache invalidation, image
 optimization, streaming acceptance, product authentication, or backend parity.
-Product compatibility checks remain required. Isolated Cloudflare deployments,
-failed probes/retries, and complete release/routing recovery remain separate
-provider acceptance gates.
+Product compatibility checks remain required. The separate
+[provider record](../../../docs/website-runtime-acceptance.json) records isolated
+Cloudflare previews and test Workers using the production overlay, including
+same-archive byte checks and failed-probe reconciliation. These operator
+fixtures do not grant product promotion authorization. Hosted product
+promotion and complete release/routing recovery remain separate gates.
