@@ -9,19 +9,32 @@ import subprocess
 from .candidate import load_candidate, sha256, CandidateError
 from .config import load_config
 from .providers import execute
+from .product_root import repository_relative_root
 
 
-def setup(root, *, candidate_directory=None):
+def setup(root, *, candidate_directory=None, validate_only=False):
     config = load_config(root / 'studio.yaml')
     if candidate_directory:
         candidate = load_candidate(candidate_directory / 'candidate.json')
         if sha256(root / 'studio.yaml') != sha256(candidate_directory / 'studio.yaml'):
             raise CandidateError('Candidate source policy does not match the reviewed policy')
         lock = json.loads((root / 'studio.lock.json').read_text())
+        if candidate.data.get('product_root', '.') != repository_relative_root(root):
+            raise CandidateError('Candidate product root does not match the checked out source')
+        source_sha = execute(['git', 'rev-parse', 'HEAD'], cwd=root, capture=True)
+        if source_sha != candidate.data['source_sha']:
+            raise CandidateError('Promotion source checkout differs from the candidate')
+        lock_digest = sha256(root / 'studio.lock.json')
+        if candidate.data.get('product_lock_sha256', lock_digest) != lock_digest:
+            raise CandidateError('Promotion product lock differs from the candidate')
+        if candidate.data.get('toolchains', {}) != config['toolchain']:
+            raise CandidateError('Candidate toolchain differs from the reviewed product policy')
         implementation = Path(os.environ['STUDIO_ENGINE_ROOT']).resolve()
         actual = execute(['git','rev-parse','HEAD'],cwd=implementation,capture=True)
-        if actual != candidate.data['tooling_revision'] or actual != lock['revision']:
+        if actual != candidate.data['tooling_revision'] or actual != lock.get('revision'):
             raise CandidateError('Promotion must execute the candidate tooling revision')
+    if validate_only:
+        return config
     xcode = config['toolchain'].get('xcode')
     if xcode:
         matches = []
@@ -65,5 +78,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('--candidate',type=Path)
     parser.add_argument('--source',type=Path,default=Path.cwd())
+    parser.add_argument('--validate-only',action='store_true')
     args=parser.parse_args()
-    setup(args.source.resolve(),candidate_directory=args.candidate.resolve() if args.candidate else None)
+    setup(args.source.resolve(),candidate_directory=args.candidate.resolve() if args.candidate else None,
+          validate_only=args.validate_only)

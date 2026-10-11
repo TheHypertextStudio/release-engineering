@@ -14,6 +14,7 @@ from .candidate import CandidateError, PromotionJournal, load_candidate, sha256,
 from .config import load_config
 from .lifecycle import run
 from .providers import deploy_cloud_run, deploy_worker, deploy_site, publish_npm, execute, probe, upload_asset, worker_plan, verify_download
+from .product_root import repository_relative_root, validate_product_root
 from .versioning import build_number, version_from_git
 
 
@@ -211,6 +212,7 @@ def create(config, output, tooling_revision):
         artifacts += reference['artifacts']
         compatibility[dependency['id']] = {'status':'passed', 'manifest_sha256':reference['manifest_sha256']}
     data = {'schema':1, 'id':identifier, 'product':config.product, 'repository':config['repository'],
+            'product_root':repository_relative_root(config.root), 'product_lock_sha256':sha256(config.root/'studio.lock.json'),
             'source_sha':source_sha, 'trigger_event':os.environ['GITHUB_EVENT_NAME'], 'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
             'workflow_run_attempt':int(os.environ['GITHUB_RUN_ATTEMPT']), 'version':version,
             'build_number':number, 'tooling_revision':tooling_revision, 'toolchains':config['toolchain'],
@@ -226,7 +228,7 @@ def create(config, output, tooling_revision):
     return candidate
 
 
-def download(repository, identifier, destination):
+def download(repository, identifier, destination, *, expected_product_root=None):
     if not re.fullmatch(r'[1-9][0-9]*-[1-9][0-9]*', identifier):
         raise CandidateError('Candidate id must be run-id and attempt')
     run_id, attempt = map(int, identifier.split('-'))
@@ -238,6 +240,8 @@ def download(repository, identifier, destination):
             execute(['gh','release','download',f'component-ready-{identifier}','--repo',repository,'--pattern',f'candidate-{identifier}.zip','--dir',temporary])
             unpack(Path(temporary)/f'candidate-{identifier}.zip',destination)
     candidate = load_candidate(Path(destination) / 'candidate.json', expected_repository=repository)
+    if expected_product_root is not None and candidate.data.get('product_root', '.') != validate_product_root(expected_product_root):
+        raise CandidateError('Downloaded candidate belongs to another product root')
     if candidate.data['id'] != identifier or candidate.data['workflow_run_id']!=run_id or candidate.data['workflow_run_attempt']!=attempt:
         raise CandidateError('Downloaded artifact belongs to another candidate')
     verify_hosted(candidate)
@@ -308,7 +312,7 @@ def record_ready(config, candidate):
                        env=env,text=True,check=True,capture_output=True)
 
 
-def promote_component(config, candidate, component, environment):
+def promote_component(config, candidate, component, environment, *, journal=None, authorize=None):
     from .bindings import component as bound_component
     component=bound_component(candidate,component)
     matches = [item for item in candidate.data['artifacts'] if item['component'] == component['id']]
@@ -338,7 +342,7 @@ def promote_component(config, candidate, component, environment):
                 for path in list(root.iterdir()):
                     if path.name!='.vercel': shutil.move(str(path),output/path.name)
             website_artifact={**matches[0],'candidate_id':candidate.data['id']}
-            return deploy_site(component,website_artifact,environment,root,config['toolchain'],bindings_root=candidate.path.parent)
+            return deploy_site(component,website_artifact,environment,root,config['toolchain'],bindings_root=candidate.path.parent, **({'journal':journal} if journal is not None else {}), **({'authorize':authorize} if authorize is not None else {}))
     if component['kind'] == 'macos':
         if environment != 'production':
             raise CandidateError('Shipping identities do not deploy to staging')
@@ -435,6 +439,14 @@ def _publish_record(config,candidate,journal,*,publish_hosting=True,state_overri
 
 
 def promote(config,candidate,review,journal_path):
+    selected_root = repository_relative_root(config.root)
+    if candidate.data.get('product_root', '.') != selected_root:
+        raise CandidateError('Candidate product root differs from the reviewed checkout')
+    if candidate.data.get('toolchains', {}) != config['toolchain']:
+        raise CandidateError('Candidate toolchain differs from the reviewed product policy')
+    lock=json.loads((config.root/'studio.lock.json').read_text())
+    if lock.get('revision') != candidate.data['tooling_revision'] or candidate.data.get('product_lock_sha256', sha256(config.root/'studio.lock.json')) != sha256(config.root/'studio.lock.json'):
+        raise CandidateError('Candidate tooling lock differs from the reviewed product')
     verify_hosted(candidate)
     validate_promotion(candidate,config,review)
     if os.environ.get('GITHUB_EVENT_NAME')!='workflow_dispatch' or os.environ.get('GITHUB_ACTOR')!=review['reviewer']:
@@ -451,19 +463,19 @@ def promote(config,candidate,review,journal_path):
             declared=load_config(directory / 'studio.yaml')
             for component in promotion_order(declared.components):
                 _authorization_check(config,candidate)
-                result=journal.perform(f'dependency:{dependency["id"]}:{component["id"]}',lambda c=component,d=declared,m=dependent:promote_component(d,m,c,'production'))
+                result=journal.perform(f'dependency:{dependency["id"]}:{component["id"]}',lambda c=component,d=declared,m=dependent:promote_component(d,m,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate)))
                 require_completed(result)
         for component in promotion_order(config.components):
             _authorization_check(config,candidate)
             if component['kind']=='macos':
                 if 'direct' in config['release']['channels']:
-                    journal.perform(component['id']+':direct',lambda c=component:promote_component(config,candidate,c,'production'))
+                    journal.perform(component['id']+':direct',lambda c=component:promote_component(config,candidate,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate)))
                 if 'app-store' in config['release']['channels']:
                     from . import store
                     journal.perform(component['id']+':store-upload',lambda c=component:store.upload(config,candidate,c,authorized_digest=candidate.digest))
                     journal.perform(component['id']+':store-review',lambda c=component:store.submit(config,candidate,c,authorized_digest=candidate.digest))
             else:
-                require_completed(journal.perform(component['id'],lambda c=component:promote_component(config,candidate,c,'production')))
+                require_completed(journal.perform(component['id'],lambda c=component:promote_component(config,candidate,c,'production',journal=journal,authorize=lambda:_authorization_check(config,candidate))))
 
     finally:
         try:
@@ -537,17 +549,19 @@ def main():
     parser.add_argument('--tooling-revision')
     parser.add_argument('--candidate-id')
     parser.add_argument('--manifest-sha256')
+    parser.add_argument('--product-root')
     args = parser.parse_args()
     config = load_config(args.root / 'studio.yaml')
     if args.mode == 'reconcile':
         print(json.dumps(reconcile(config)))
     elif args.mode == 'download':
-        candidate = download(config['repository'],args.candidate_id,args.output)
+        candidate = download(config['repository'],args.candidate_id,args.output,
+                             expected_product_root=args.product_root if args.product_root is not None else repository_relative_root(config.root))
         if candidate.digest != args.manifest_sha256:
             raise CandidateError('Downloaded manifest does not match review')
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'],'a') as target:
-                target.write(f'source_sha={candidate.data["source_sha"]}\ntooling_revision={candidate.data["tooling_revision"]}\n')
+                target.write(f'source_sha={candidate.data["source_sha"]}\ntooling_revision={candidate.data["tooling_revision"]}\nproduct_root={candidate.data.get("product_root", ".")}\n')
         print(candidate.data['source_sha'])
     elif args.mode == 'create':
         create(config,args.output,args.tooling_revision)

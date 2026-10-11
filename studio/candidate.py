@@ -48,6 +48,11 @@ def _validate(data):
             raise CandidateError(f'Candidate requires {key}')
     if not isinstance(data.get('artifacts'), list) or not data['artifacts']:
         raise CandidateError('Candidate requires artifacts')
+    if 'product_root' in data:
+        from .product_root import validate_product_root
+        validate_product_root(data['product_root'])
+    if 'product_lock_sha256' in data and (not isinstance(data['product_lock_sha256'], str) or not re.fullmatch(r'[0-9a-f]{64}', data['product_lock_sha256'])):
+        raise CandidateError('Candidate product lock must be bound by SHA-256')
     seen = set()
     for artifact in data['artifacts']:
         if not isinstance(artifact, dict):

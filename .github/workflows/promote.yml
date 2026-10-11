@@ -5,6 +5,9 @@ on:
       tooling_revision:
         type: string
         required: true
+      product_root:
+        type: string
+        default: '.'
       release_action:
         type: string
         default: promote
@@ -35,18 +38,11 @@ jobs:
     timeout-minutes: 60
     environment: production
     env:
-      GH_TOKEN: ${{ github.token }}
-      NODE_AUTH_TOKEN: ${{ github.token }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       STUDIO_ENGINE_ROOT: ${{ github.workspace }}/.studio-engine
       STUDIO_CANDIDATE_ID: ${{ inputs.candidate_id }}
       STUDIO_MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
       STUDIO_RELEASE_ACTION: ${{ inputs.release_action }}
       STUDIO_REVIEW_EVIDENCE: ${{ inputs.evidence }}
-      APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
-      APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -67,24 +63,18 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.19.0'
-      - name: Prepare the dispatch toolchain
-        id: toolchain
-        run: python -m studio.ci_setup
-      - name: Prepare declared Java
-        if: steps.toolchain.outputs.java != ''
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
-        with:
-          distribution: temurin
-          java-version: ${{ steps.toolchain.outputs.java }}
-      - name: Prepare declared .NET
-        if: steps.toolchain.outputs.dotnet != ''
-        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
-        with:
-          dotnet-version: ${{ steps.toolchain.outputs.dotnet }}.x
+      - name: Resolve the dispatch product root
+        id: dispatch-root
+        env:
+          STUDIO_PRODUCT_ROOT: ${{ inputs.product_root }}
+        run: python -m studio.product_root "$STUDIO_PRODUCT_ROOT"
       - name: Fetch and verify the exact reviewed artifact
         id: candidate
-        run: |
-          python -m studio.ci download --candidate-id "$STUDIO_CANDIDATE_ID" --manifest-sha256 "$STUDIO_MANIFEST_SHA256"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STUDIO_DISPATCH_ROOT: ${{ steps.dispatch-root.outputs.product_root_path }}
+          STUDIO_PRODUCT_ROOT: ${{ inputs.product_root }}
+        run: python -m studio.ci download --root "$STUDIO_DISPATCH_ROOT" --product-root "$STUDIO_PRODUCT_ROOT" --output "$GITHUB_WORKSPACE/.studio/candidate" --candidate-id "$STUDIO_CANDIDATE_ID" --manifest-sha256 "$STUDIO_MANIFEST_SHA256"
       - name: Check out candidate source for provider bindings
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -100,8 +90,33 @@ jobs:
           persist-credentials: false
       - name: Install the exact candidate runtime
         run: python -m pip install --force-reinstall ./.studio-engine
-      - name: Restore candidate policy and toolchain
-        run: python -m studio.ci_setup --candidate .studio/candidate --source .studio-source
+      - name: Resolve the reviewed source root
+        id: candidate-root
+        env:
+          STUDIO_PRODUCT_ROOT: ${{ steps.candidate.outputs.product_root }}
+        run: python -m studio.product_root --checkout .studio-source "$STUDIO_PRODUCT_ROOT"
+      - name: Validate reviewed policy and toolchain before credentials
+        env:
+          STUDIO_CANDIDATE_ROOT: ${{ steps.candidate-root.outputs.product_root_path }}
+        run: python -m studio.ci_setup --candidate "$GITHUB_WORKSPACE/.studio/candidate" --source "$STUDIO_CANDIDATE_ROOT" --validate-only
+      - name: Prepare the reviewed toolchain
+        id: toolchain
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          STUDIO_CANDIDATE_ROOT: ${{ steps.candidate-root.outputs.product_root_path }}
+        run: python -m studio.ci_setup --candidate "$GITHUB_WORKSPACE/.studio/candidate" --source "$STUDIO_CANDIDATE_ROOT"
+      - name: Prepare declared Java
+        if: steps.toolchain.outputs.java != ''
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: ${{ steps.toolchain.outputs.java }}
+      - name: Prepare declared .NET
+        if: steps.toolchain.outputs.dotnet != ''
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1
+        with:
+          dotnet-version: ${{ steps.toolchain.outputs.dotnet }}.x
       - name: Authenticate the product workload identity
         if: vars.STUDIO_PRODUCTION_WIF_PROVIDER != '' && vars.STUDIO_PRODUCTION_SERVICE_ACCOUNT != ''
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed
@@ -112,6 +127,17 @@ jobs:
         if: vars.STUDIO_PRODUCTION_WIF_PROVIDER != ''
         uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f
       - name: Prepare the declared credential bindings
-        run: python -m studio.credentials --root .studio-source
+        env:
+          STUDIO_CANDIDATE_ROOT: ${{ steps.candidate-root.outputs.product_root_path }}
+        run: python -m studio.credentials --root "$STUDIO_CANDIDATE_ROOT"
       - name: Promote dependencies and distributions without rebuilding
-        run: python -m studio.ci "$STUDIO_RELEASE_ACTION" --root .studio-source --manifest-sha256 "$STUDIO_MANIFEST_SHA256"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          STUDIO_CANDIDATE_ROOT: ${{ steps.candidate-root.outputs.product_root_path }}
+        run: python -m studio.ci "$STUDIO_RELEASE_ACTION" --root "$STUDIO_CANDIDATE_ROOT" --output "$GITHUB_WORKSPACE/.studio/candidate" --manifest-sha256 "$STUDIO_MANIFEST_SHA256"
