@@ -23,6 +23,19 @@ def parser():
     docs.add_argument('--project', required=True)
     docs.add_argument('--source-sha', required=True)
     docs.add_argument('--deployment-id', required=True)
+    site = commands.add_parser('site')
+    site_commands = site.add_subparsers(dest='site_command', required=True)
+    recovery = site_commands.add_parser('recovery')
+    recovery.add_argument('mode', choices=('capture', 'restore'))
+    recovery.add_argument('--component', required=True)
+    recovery.add_argument('--env', choices=('staging', 'production'), required=True)
+    recovery.add_argument('--record', type=Path, required=True)
+    recovery.add_argument('--journal', type=Path)
+    recovery.add_argument('--archive', type=Path)
+    recovery.add_argument('--worker-config', type=Path)
+    recovery.add_argument('--expected-current-version')
+    recovery.add_argument('--expected-current-routing-sha256')
+    recovery.add_argument('--confirm')
     provision = commands.add_parser('provision')
     provision.add_argument('mode', choices=('plan', 'apply'))
     provision.add_argument('--env', required=True)
@@ -45,6 +58,39 @@ def main(argv=None):
             path = documentation.record(config, observation)
             print(json.dumps({**observation, 'record': str(path)}, indent=2))
             return {'completed': 0, 'failed': 1, 'provider-pending': 2}[observation['state']]
+        if arguments.command == 'site':
+            from .providers import execute
+            from .websites import (CloudflareWorkersAPI, capture_workers_site_recovery,
+                                   restore_workers_site_recovery)
+            component = next((row for row in config.components if row.get('id') == arguments.component), None)
+            if component is None or component.get('kind') != 'static-site' or component.get('deploy', {}).get('provider') != 'workers':
+                raise ValueError('Site recovery requires a declared Workers static-site component')
+            record_path = arguments.record if arguments.record.is_absolute() else root / arguments.record
+            api = CloudflareWorkersAPI()
+            if arguments.mode == 'capture':
+                if not arguments.archive:
+                    raise ValueError('Recovery capture requires the retained prior --archive')
+                worker_config = arguments.worker_config or (Path(component['path']) / component['deploy']['config'])
+                worker_config = worker_config if worker_config.is_absolute() else root / worker_config
+                archive = arguments.archive if arguments.archive.is_absolute() else root / arguments.archive
+                result = capture_workers_site_recovery(component, arguments.env, worker_config,
+                                                       archive, record_path, api=api)
+            else:
+                if not arguments.expected_current_version or not arguments.expected_current_routing_sha256 or not arguments.confirm:
+                    raise ValueError('Recovery restore requires expected live version, route/domain digest, and explicit --confirm')
+                worker_config = Path(component['path']) / component['deploy']['config']
+                worker_config = worker_config if worker_config.is_absolute() else root / worker_config
+                result = restore_workers_site_recovery(
+                    record_path, component, arguments.env,
+                    current_config_path=worker_config,
+                    expected_current_version=arguments.expected_current_version,
+                    expected_current_routing_sha256=arguments.expected_current_routing_sha256,
+                    confirmation=arguments.confirm, toolchain=config['toolchain'], api=api,
+                    runner=lambda command, **kwargs: execute(command, cwd=root, **kwargs),
+                    journal_path=(arguments.journal if arguments.journal is None or arguments.journal.is_absolute()
+                                  else root / arguments.journal))
+            print(json.dumps(result, indent=2))
+            return 0
         if arguments.command == 'release':
             if __import__('re').fullmatch(r'[1-9][0-9]*-[1-9][0-9]*',arguments.candidate):
                 from .ci import download

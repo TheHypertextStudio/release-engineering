@@ -34,6 +34,12 @@ gradle, cloud-run, cloudflare-worker, and static-site. Build and release policy
 remain in this repository. Product-specific checks may execute native test
 commands; release hooks and shell snippets are prohibited.
 
+Repositories with multiple development targets may set
+`development.component` to a declared component ID. This selects the default
+target for `./run dev`; an explicit `--component` takes precedence. The selector
+does not change which components `setup`, `check`, or `build` process. Without
+the declaration, `dev` keeps its existing all-component default.
+
 Candidates use schema 1, id, product, repository, source_sha, workflow_run_id,
 workflow_run_attempt, version, build_number, tooling_revision, artifacts,
 checks, prerequisites and compatibility. An artifact records component,

@@ -124,9 +124,14 @@ def run(config, action, *, component=None, env=None, apply=False, runner=execute
     if action == 'check' and (config.root / 'studio.lock.json').exists():
         from .conformance import check
         check(config)
-    selected = [item for item in config.components if component is None or item['id'] == component]
+    selected_component = component
+    if action == 'dev' and selected_component is None:
+        development = config.data.get('development')
+        if development is not None:
+            selected_component = development['component']
+    selected = [item for item in config.components if selected_component is None or item['id'] == selected_component]
     if not selected:
-        raise ConfigError(f'Unknown component: {component}')
+        raise ConfigError(f'Unknown component: {selected_component}')
     results = []
     if action == 'setup':
         if any(item['kind']=='macos' for item in selected) and 'direct' in config['release'].get('channels',[]):
