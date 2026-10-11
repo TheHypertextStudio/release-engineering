@@ -64,7 +64,40 @@ Mintlify configuration and setup are standardized by the versioned `@thehypertex
 
 Keep required docs checks in product CI before merging to the Mintlify deployment branch. Use a pinned local CLI, and retain additional product checks. Record reviewed source SHA, required check results, Mintlify project/deployment identity, provider URL, and public path/search/asset/redirect acceptance independently from Workers candidates.
 
-Mintlify has its own publishing lifecycle. It does not run a Workers build and does not provide this adapter's immutable artifact promotion or release metadata contract. Automated provider-result collection and verified Git settings are still required before documentation adoption is accepted.
+Mintlify has its own publishing lifecycle. It does not run a Workers build and does not provide this adapter's immutable artifact promotion or release metadata contract. Verified Git settings and a source-bound provider deployment record are required before documentation adoption is accepted. Public HTTP success alone does not identify the deployed source.
+
+### Observe a Mintlify deployment
+
+Declare external documentation independently from the frontend components. It never enters the Workers build/archive/promotion path:
+
+```yaml
+documentation:
+  product-docs:
+    provider: mintlify
+    organization: hypertextstudio
+    project: product
+    project_id: recorded-mintlify-project-id
+    path: docs
+    branch: main
+    upstream: https://product.mintlify.site
+    public_url: https://product.example/docs
+    required_checks:
+      - Docs validation
+```
+
+Keep the currently proven `.mintlify.dev` origin when that is the product's configured proxy. Both supported proxy suffixes must name the declared project. The project ID and update status ID come from Mintlify, not a Workers candidate or a GitHub workflow ID.
+
+```sh
+./run docs inspect --project product-docs \
+  --source-sha FULL_REVIEWED_COMMIT_SHA \
+  --deployment-id MINTLIFY_UPDATE_STATUS_ID
+```
+
+The command reads GitHub branch ancestry and the latest named GitHub Actions check runs across every result page. All required checks must have completed successfully on the exact reviewed source. It then reads Mintlify's deployment status, requiring the configured provider project, subdomain, source SHA, and deployment ref to match. It does not trigger an update, build, publish, change a Git integration, or probe a Workers metadata endpoint.
+
+The command writes nonsecret observations under `.studio/documentation/<project>/<source-sha>/<deployment-id>.json`, retaining pending, failed, and successful observations. Exit codes are `0` for a completed provider deployment, `1` for a failed deployment or invalid/missing evidence, and `2` while the provider is queued or in progress. Upload the record as workflow evidence. Serialize polling for the same deployment record; the local history file is not a distributed journal. Keep public path/search/asset/redirect acceptance as a separate product gate.
+
+Automated observation uses an existing `MINTLIFY_API_KEY` supplied by the environment. Use a read-scoped admin key and retain it only in the secret provider. The client uses the fixed Mintlify API host, rejects redirects, bounds responses, and excludes provider logs, summaries, author details, and key values from records/errors. The [Mintlify REST API](https://www.mintlify.com/docs/api/introduction) requires Pro or Enterprise; its [deployment status response](https://www.mintlify.com/docs/api/update/status) supplies the source commit and provider state. Do not buy an upgrade or create a key as part of checkout setup. Where existing API entitlement is unavailable, record the authenticated dashboard's deployment result, exact source link/ref, project/activity URL, and observation time as reviewed operational evidence; label it as a dashboard observation instead of an automated API result. A dashboard observation does not prove the API transport worked.
 
 Shared package publication uses the existing npm adapter. The package candidate contains one reviewed tarball; the adapter verifies the registry's SHA-512 integrity before accepting publication or an idempotent retry. Production promotion requires package-write permission in the calling workflow as well as the reusable workflow. Candidate and validation workflows retain package-read permission.
 

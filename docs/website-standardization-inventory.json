@@ -366,8 +366,462 @@
   },
   "provider_access": {
     "cloudflare": {
-      "status": "blocked",
-      "reason": "Authenticated Wrangler account is LVBT only; Studio account unavailable"
+      "status": "available",
+      "account_id": "2500680a3b2b0fe6a011c1c25fed5008",
+      "account_name": "Hypertext Studio",
+      "cli": "cf@1.0.0-beta.14",
+      "profile": "hypertext-studio",
+      "observed_at": "2026-10-11T00:07:59.048410+00:00",
+      "observation": {
+        "observed_at": "2026-10-11T00:07:59.048410+00:00",
+        "cli": "cf@1.0.0-beta.14",
+        "profile": "hypertext-studio",
+        "account_id": "2500680a3b2b0fe6a011c1c25fed5008",
+        "pages": [
+          {
+            "id": "79ffc8a2-a761-4fd0-b376-8fd391569c7a",
+            "name": "curfew-landing",
+            "subdomain": "curfew-landing.pages.dev",
+            "domains": [
+              "curfew-landing.pages.dev",
+              "curfew.hypertext.studio"
+            ],
+            "production_branch": "main",
+            "created_on": "2026-08-01T03:37:27.337339Z",
+            "source": {
+              "owner": "TheHypertextStudio",
+              "repo_name": "curfew",
+              "production_branch": "main",
+              "production_deployments_enabled": true,
+              "deployments_enabled": true
+            },
+            "build": {
+              "build_command": "",
+              "destination_dir": ".",
+              "root_dir": "landing"
+            },
+            "canonical_deployment": {
+              "id": "f902590f-fd0c-4bee-9bfc-19f7522c825b",
+              "url": "https://f902590f.curfew-landing.pages.dev",
+              "environment": "production",
+              "created_on": "2026-10-10T18:32:50.455545Z",
+              "latest_stage": {
+                "name": "deploy",
+                "started_on": "2026-10-10T18:32:58.029353Z",
+                "ended_on": "2026-10-10T18:33:03.148554Z",
+                "status": "success"
+              },
+              "source_sha": "9e941cc59ffa88e3a8bc5279ca14fcb3fb9a9090",
+              "source_branch": "main",
+              "trigger": "github:push"
+            },
+            "latest_deployment": {
+              "id": "ef9ac49c-5e4f-44f3-b817-28a2e3e4b89a",
+              "url": "https://ef9ac49c.curfew-landing.pages.dev",
+              "environment": "preview",
+              "created_on": "2026-10-10T21:25:46.716871Z",
+              "latest_stage": {
+                "name": "deploy",
+                "started_on": "2026-10-10T21:25:55.966683Z",
+                "ended_on": "2026-10-10T21:26:03.156289Z",
+                "status": "success"
+              },
+              "source_sha": "c42cf761ad6a9819be0a5c4e802588bc5c051c44",
+              "source_branch": "codex/harden-reauth-cancel",
+              "trigger": "github:push"
+            },
+            "environment_variables": {
+              "preview": {},
+              "production": {}
+            }
+          },
+          {
+            "id": "9cf69732-2987-4802-b252-8c8be16accec",
+            "name": "hypertext-studio",
+            "subdomain": "hypertext-studio.pages.dev",
+            "domains": [
+              "hypertext-studio.pages.dev",
+              "hypertext.studio"
+            ],
+            "production_branch": "main",
+            "created_on": "2026-08-30T23:11:25.751634Z",
+            "source": {
+              "owner": null,
+              "repo_name": null,
+              "production_branch": null,
+              "production_deployments_enabled": null,
+              "deployments_enabled": null
+            },
+            "build": {
+              "build_command": null,
+              "destination_dir": null,
+              "root_dir": null
+            },
+            "canonical_deployment": {
+              "id": "c7365ead-0505-46f5-85c0-0eb87db22725",
+              "url": "https://c7365ead.hypertext-studio.pages.dev",
+              "environment": "production",
+              "created_on": "2026-10-08T07:50:59.02466Z",
+              "latest_stage": {
+                "name": "deploy",
+                "started_on": null,
+                "ended_on": "2026-10-08T07:51:00.371652Z",
+                "status": "success"
+              },
+              "source_sha": "181825c88f78af3d823bff8205879aa2f0ca25a0",
+              "source_branch": "main",
+              "trigger": "ad_hoc"
+            },
+            "latest_deployment": {
+              "id": "c7365ead-0505-46f5-85c0-0eb87db22725",
+              "url": "https://c7365ead.hypertext-studio.pages.dev",
+              "environment": "production",
+              "created_on": "2026-10-08T07:50:59.02466Z",
+              "latest_stage": {
+                "name": "deploy",
+                "started_on": null,
+                "ended_on": "2026-10-08T07:51:00.371652Z",
+                "status": "success"
+              },
+              "source_sha": "181825c88f78af3d823bff8205879aa2f0ca25a0",
+              "source_branch": "main",
+              "trigger": "ad_hoc"
+            },
+            "environment_variables": {
+              "preview": {},
+              "production": {}
+            }
+          }
+        ],
+        "supporting_workers": [
+          {
+            "created_on": "2026-08-31T03:09:44.737545Z",
+            "modified_on": "2026-10-08T07:50:48.682637Z",
+            "id": "37b61ea147484e2e9cf3f3f6bb500398",
+            "script_name": "hypertext-studio-micropub",
+            "current_deployment": {
+              "id": "7810425d-fad1-44dc-a049-e19d9994b793",
+              "created_on": "2026-10-08T07:50:47.570915Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "c8c1f879-3197-4fda-811e-120b6f478218",
+                  "percentage": 100
+                }
+              ]
+            },
+            "previous_deployment": {
+              "id": "9010beee-f191-4c3f-aa4d-235857a5ff77",
+              "created_on": "2026-10-08T07:01:19.712022Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "53156ee4-9afe-44a5-abc7-496fe8dc6979",
+                  "percentage": 100
+                }
+              ]
+            },
+            "active_version_settings": {
+              "version_id": "c8c1f879-3197-4fda-811e-120b6f478218",
+              "number": 26,
+              "compatibility_date": "2026-08-22",
+              "compatibility_flags": [
+                "nodejs_compat"
+              ],
+              "usage_model": "standard",
+              "main_module": "index.js",
+              "environment_names": [
+                "DEFAULT_BRANCH",
+                "GITHUB_REPO",
+                "GITHUB_TOKEN",
+                "INDIEAUTH_ENDPOINT",
+                "NOTES_PATH"
+              ],
+              "bindings": [
+                {
+                  "name": "DEFAULT_BRANCH",
+                  "type": "plain_text"
+                },
+                {
+                  "name": "GITHUB_REPO",
+                  "type": "plain_text"
+                },
+                {
+                  "name": "GITHUB_TOKEN",
+                  "type": "secret_text"
+                },
+                {
+                  "name": "INDIEAUTH_ENDPOINT",
+                  "type": "plain_text"
+                },
+                {
+                  "name": "NOTES_PATH",
+                  "type": "plain_text"
+                }
+              ],
+              "urls": []
+            }
+          },
+          {
+            "created_on": "2026-08-31T03:04:40.40781Z",
+            "modified_on": "2026-10-08T07:50:53.492038Z",
+            "id": "79189e4e252e4d0f8c62d122120f68ee",
+            "script_name": "hypertext-studio-oembed",
+            "current_deployment": {
+              "id": "014afb63-82fe-42c3-80c2-bf304792dbcd",
+              "created_on": "2026-10-08T07:50:52.647951Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "47450ee3-5773-41df-8e1e-0ebbb1560215",
+                  "percentage": 100
+                }
+              ]
+            },
+            "previous_deployment": {
+              "id": "2b0fe82c-85f0-4325-aa0d-ba6a5ed6b74a",
+              "created_on": "2026-10-08T07:01:25.148521Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "817e0d9b-30bb-4c41-912c-ce5157b56cfc",
+                  "percentage": 100
+                }
+              ]
+            },
+            "active_version_settings": {
+              "version_id": "47450ee3-5773-41df-8e1e-0ebbb1560215",
+              "number": 26,
+              "compatibility_date": "2026-08-22",
+              "compatibility_flags": [
+                "nodejs_compat"
+              ],
+              "usage_model": "standard",
+              "main_module": "index.js",
+              "environment_names": [
+                "SITE_NAME",
+                "SITE_URL"
+              ],
+              "bindings": [
+                {
+                  "name": "SITE_NAME",
+                  "type": "plain_text"
+                },
+                {
+                  "name": "SITE_URL",
+                  "type": "plain_text"
+                }
+              ],
+              "urls": []
+            }
+          },
+          {
+            "created_on": "2026-08-31T03:04:30.478103Z",
+            "modified_on": "2026-10-08T07:50:37.16515Z",
+            "id": "50c55bcc0f5b4bf1bd3a5db123ac7858",
+            "script_name": "hypertext-studio-poem",
+            "current_deployment": {
+              "id": "17d5da49-c5a7-49b7-a68e-f47233671237",
+              "created_on": "2026-10-08T07:50:36.345808Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "c147351a-81d0-4399-8da1-4c6667a0e6fa",
+                  "percentage": 100
+                }
+              ]
+            },
+            "previous_deployment": {
+              "id": "3a90381e-1351-4d1f-90fb-f678fcce2054",
+              "created_on": "2026-10-08T07:01:09.149257Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "9271a224-f839-402c-93a6-f136ed70775c",
+                  "percentage": 100
+                }
+              ]
+            },
+            "active_version_settings": {
+              "version_id": "c147351a-81d0-4399-8da1-4c6667a0e6fa",
+              "number": 26,
+              "compatibility_date": "2026-08-22",
+              "compatibility_flags": [
+                "nodejs_compat"
+              ],
+              "usage_model": "standard",
+              "main_module": "index.js",
+              "environment_names": [],
+              "bindings": [],
+              "urls": []
+            }
+          },
+          {
+            "created_on": "2026-08-31T03:04:36.418206Z",
+            "modified_on": "2026-10-08T07:50:42.796717Z",
+            "id": "48383d05ab7a4b0d9cca23289f8ca1af",
+            "script_name": "hypertext-studio-webmention",
+            "current_deployment": {
+              "id": "aa8fffeb-2ad4-49fc-a76e-7f9699ab7b8d",
+              "created_on": "2026-10-08T07:50:41.841501Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "45ca0103-1ab4-4d95-8272-9198eb422474",
+                  "percentage": 100
+                }
+              ]
+            },
+            "previous_deployment": {
+              "id": "1a153888-08f4-4bd4-be3a-7ea2285d4145",
+              "created_on": "2026-10-08T07:01:14.705029Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "ebf09457-547c-44d2-bf7d-d55a6b16ae70",
+                  "percentage": 100
+                }
+              ]
+            },
+            "active_version_settings": {
+              "version_id": "45ca0103-1ab4-4d95-8272-9198eb422474",
+              "number": 26,
+              "compatibility_date": "2026-08-22",
+              "compatibility_flags": [
+                "nodejs_compat"
+              ],
+              "usage_model": "standard",
+              "main_module": "index.js",
+              "environment_names": [
+                "DB"
+              ],
+              "bindings": [
+                {
+                  "name": "DB",
+                  "type": "d1",
+                  "database_id": "b1ea6c3b-1315-4bbc-ac9b-5751c4253883",
+                  "id": "b1ea6c3b-1315-4bbc-ac9b-5751c4253883"
+                }
+              ],
+              "urls": []
+            }
+          },
+          {
+            "created_on": "2026-08-31T03:11:52.069201Z",
+            "modified_on": "2026-10-08T07:50:32.037653Z",
+            "id": "5471b063c5bd4add84bc04b1601f30e2",
+            "script_name": "hypertext-studio-www",
+            "current_deployment": {
+              "id": "a368238e-da82-48cb-ad6f-416f23b81718",
+              "created_on": "2026-10-08T07:50:30.972854Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "455f3ff8-a937-40bf-94ea-fdc6fa718e63",
+                  "percentage": 100
+                }
+              ]
+            },
+            "previous_deployment": {
+              "id": "81f1b4e3-19de-41a0-a32d-b5541893a21d",
+              "created_on": "2026-10-08T07:01:03.898191Z",
+              "source": "wrangler",
+              "strategy": "percentage",
+              "versions": [
+                {
+                  "version_id": "62cba698-f945-4ce1-ae3f-7132b6e63636",
+                  "percentage": 100
+                }
+              ]
+            },
+            "active_version_settings": {
+              "version_id": "455f3ff8-a937-40bf-94ea-fdc6fa718e63",
+              "number": 25,
+              "compatibility_date": "2026-08-22",
+              "compatibility_flags": [
+                "nodejs_compat"
+              ],
+              "usage_model": "standard",
+              "main_module": "index.js",
+              "environment_names": [],
+              "bindings": [],
+              "urls": []
+            }
+          }
+        ],
+        "d1_metadata": [
+          {
+            "uuid": "e183e66c-dcd1-4219-ab05-f78b9e952ef3",
+            "name": "curfew-account-platform",
+            "created_at": "2026-09-06T07:20:25.003Z",
+            "file_size": 12288,
+            "jurisdiction": null
+          },
+          {
+            "uuid": "e31b7123-6f6e-432c-9cc1-18f14bdaccd5",
+            "name": "curfew-account-platform-staging",
+            "created_at": "2026-09-06T07:20:23.491Z",
+            "file_size": 1179648,
+            "jurisdiction": null
+          },
+          {
+            "uuid": "b1ea6c3b-1315-4bbc-ac9b-5751c4253883",
+            "name": "hypertext-studio",
+            "created_at": "2026-08-31T03:02:57.577Z",
+            "file_size": 53248,
+            "jurisdiction": null
+          }
+        ],
+        "frontend_dns": [
+          {
+            "id": "6d609a0bf6bf88df266099a5d4e39cff",
+            "name": "curfew.hypertext.studio",
+            "type": "CNAME",
+            "content": "curfew-landing.pages.dev",
+            "proxied": true,
+            "ttl": 1
+          },
+          {
+            "id": "8a3bddc7a802fe2e9a00fe65e7003c73",
+            "name": "docket.hypertext.studio",
+            "type": "CNAME",
+            "content": "2a70dcb5fd25748c.vercel-dns-017.com",
+            "proxied": false,
+            "ttl": 600
+          },
+          {
+            "id": "6ffbd7340c019b46173231621aadd489",
+            "name": "hypertext.studio",
+            "type": "CNAME",
+            "content": "hypertext-studio.pages.dev",
+            "proxied": true,
+            "ttl": 1
+          },
+          {
+            "id": "af53bc5204ca299083cccbbbffe5ac98",
+            "name": "www.hypertext.studio",
+            "type": "CNAME",
+            "content": "sites.figma.net",
+            "proxied": true,
+            "ttl": 1
+          }
+        ],
+        "worker_settings_observed_at": "2026-10-11T00:14:34.982422+00:00"
+      },
+      "remaining_gates": [
+        "Live route/custom-domain capture",
+        "Provider error/latency/usage baselines",
+        "CI credentials and isolated preview provisioning"
+      ]
     },
     "vercel": {
       "status": "available",
@@ -388,8 +842,49 @@
       }
     },
     "mintlify": {
-      "status": "unverified",
-      "reason": "Pinned mint@4.2.854 local CLI installed and exercised; dashboard/API settings and deployment result remain unverified"
+      "status": "dashboard-verified",
+      "organization": "hypertextstudio",
+      "preview_entitlement": "Unavailable; Pro trial ended; pinned local preview retained",
+      "api_entitlement": "REST API documented as Pro or Enterprise; no admin key created or subscription changed",
+      "projects": {
+        "curfew": {
+          "project": "curfew",
+          "site_address": "https://curfew.hypertext.studio/docs",
+          "upstream_from_dashboard": "https://curfew.mintlify.site",
+          "git_integration": "not-connected",
+          "source_directory_to_connect": "docs",
+          "source_repository_to_connect": "TheHypertextStudio/curfew",
+          "deployment_branch_to_connect": "main",
+          "last_observed_update": {
+            "status": "failure",
+            "displayed_at": "Jun 25, 2026, 7:50 PM",
+            "source_sha": null
+          },
+          "dashboard_url": "https://app.mintlify.com/hypertextstudio/curfew/activity",
+          "public_current_delivery": "Pages landing/docs.html guide; public HTML contains no Mintlify assets; Mintlify upstream /docs returns 404"
+        },
+        "docket": {
+          "project": "docket",
+          "site_address": "https://docket.hypertext.studio/docs",
+          "upstream_from_dashboard": "https://docket.mintlify.site",
+          "active_source_upstream": "https://docket.mintlify.dev",
+          "git_integration": {
+            "repository": "TheHypertextStudio/athena-web",
+            "branch": "main",
+            "source_directory": "apps/docs"
+          },
+          "last_observed_update": {
+            "status": "success",
+            "source_sha": "0aadf2bd2669119ee8f99a1474e7fbac85273f57",
+            "source_ref": "refs/heads/main",
+            "displayed_at": "Oct 2, 2026, 5:05 PM"
+          },
+          "dashboard_url": "https://app.mintlify.com/hypertextstudio/docket/activity",
+          "public_delivery": "https://clearthedocket.com/docs/guides/what-docket-is",
+          "observed_canonical": "https://docket.hypertext.studio/docs/guides/what-docket-is",
+          "canonical_reconciliation": "Public application redirects the Studio alias to clearthedocket.com; Mintlify still declares the old alias in canonical tags. Reconcile during docs adoption; preserve public /docs URLs."
+        }
+      }
     }
   },
   "surfaces": [
@@ -399,22 +894,62 @@
       "path": ".",
       "origin": "https://hypertext.studio",
       "current_host": "Pages + supporting Workers",
-      "target_host": "Workers"
+      "target_host": "Workers",
+      "current_provider": {
+        "account_id": "2500680a3b2b0fe6a011c1c25fed5008",
+        "project_id": "9cf69732-2987-4802-b252-8c8be16accec",
+        "project_name": "hypertext-studio"
+      },
+      "recovery_target": {
+        "id": "c7365ead-0505-46f5-85c0-0eb87db22725",
+        "url": "https://c7365ead.hypertext-studio.pages.dev",
+        "environment": "production",
+        "created_on": "2026-10-08T07:50:59.02466Z",
+        "latest_stage": {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-08T07:51:00.371652Z",
+          "status": "success"
+        },
+        "source_sha": "181825c88f78af3d823bff8205879aa2f0ca25a0",
+        "source_branch": "main",
+        "trigger": "ad_hoc"
+      }
     },
     {
       "id": "curfew-marketing",
       "repository": "TheHypertextStudio/curfew",
       "path": "landing",
       "origin": "https://curfew.hypertext.studio",
-      "current_host": "Pages (source requires provider verification)",
-      "target_host": "Workers"
+      "current_host": "Cloudflare Pages; verified Git root landing/, main branch",
+      "target_host": "Workers",
+      "current_provider": {
+        "account_id": "2500680a3b2b0fe6a011c1c25fed5008",
+        "project_id": "79ffc8a2-a761-4fd0-b376-8fd391569c7a",
+        "project_name": "curfew-landing"
+      },
+      "recovery_target": {
+        "id": "f902590f-fd0c-4bee-9bfc-19f7522c825b",
+        "url": "https://f902590f.curfew-landing.pages.dev",
+        "environment": "production",
+        "created_on": "2026-10-10T18:32:50.455545Z",
+        "latest_stage": {
+          "name": "deploy",
+          "started_on": "2026-10-10T18:32:58.029353Z",
+          "ended_on": "2026-10-10T18:33:03.148554Z",
+          "status": "success"
+        },
+        "source_sha": "9e941cc59ffa88e3a8bc5279ca14fcb3fb9a9090",
+        "source_branch": "main",
+        "trigger": "github:push"
+      }
     },
     {
       "id": "curfew-docs",
       "repository": "TheHypertextStudio/curfew",
       "path": "docs",
       "origin": "https://curfew.hypertext.studio/docs",
-      "current_host": "Unverified: remote source says unpublished Mintlify, public setup guide landing/docs.html",
+      "current_host": "Cloudflare Pages HTML guide; Mintlify project exists but has no connected Git source and no successful deployment",
       "target_host": "Mintlify"
     },
     {
@@ -493,14 +1028,16 @@
     }
   ],
   "pending_evidence": [
-    "Cloudflare Studio account projects/routes/D1 deployment identities and usage",
-    "Mintlify dashboard project/domain/base path/source branch settings and entitlement",
+    "Live Cloudflare routes/custom domains; Worker bindings now verified by active version settings",
     "Provider error/latency/usage baselines",
-    "Production passkey/native association and authenticated journey baseline"
+    "Production passkey/native association and authenticated journey baseline",
+    "Curfew Mintlify Git connection and first verified source deployment",
+    "Docket Mintlify canonical origin reconciliation and reviewed docs package deployment"
   ],
   "source_reconciliation": {
     "curfew": "Current remote main uses landing/ and docs/. Existing primary checkout is ahead 25 and behind 110 with unrelated dirty Xcode project; do not modify it. Plan paths web/landing and web/docs refer to that divergent checkout.",
-    "curfew_docs": "Current remote Documentation/todos.md says docs/ Mintlify source is unpublished. Public /docs HTTP 200 does not prove Mintlify project/source/Git integration; reconcile provider before routing changes."
+    "curfew_docs": "Confirmed live: Pages serves the HTML guide under /docs. The existing Mintlify project targets the same path but has no Git integration and its initial update failed. Keep the current guide until a validated Mintlify deployment and proxy acceptance pass.",
+    "curfew_latest_deployment": "The newer readiness commit shown in the dashboard is a preview on codex/harden-reauth-cancel. Production remains source 9e941cc59ffa88e3a8bc5279ca14fcb3fb9a9090; do not substitute the latest preview for the recovery target."
   },
   "shared_toolchain": {
     "node": "24.20.0",
