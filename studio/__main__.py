@@ -18,6 +18,11 @@ def parser():
     for name in ('setup', 'doctor', 'dev', 'check', 'build'):
         command = commands.add_parser(name)
         command.add_argument('--component')
+    docs = commands.add_parser('docs')
+    docs.add_argument('mode', choices=('inspect',))
+    docs.add_argument('--project', required=True)
+    docs.add_argument('--source-sha', required=True)
+    docs.add_argument('--deployment-id', required=True)
     provision = commands.add_parser('provision')
     provision.add_argument('mode', choices=('plan', 'apply'))
     provision.add_argument('--env', required=True)
@@ -34,6 +39,12 @@ def main(argv=None):
     try:
         root = arguments.root.resolve()
         config = load_config(arguments.config if arguments.config.is_absolute() else root / arguments.config)
+        if arguments.command == 'docs':
+            from . import documentation
+            observation = documentation.inspect(config, arguments.project, arguments.source_sha, arguments.deployment_id)
+            path = documentation.record(config, observation)
+            print(json.dumps({**observation, 'record': str(path)}, indent=2))
+            return {'completed': 0, 'failed': 1, 'provider-pending': 2}[observation['state']]
         if arguments.command == 'release':
             if __import__('re').fullmatch(r'[1-9][0-9]*-[1-9][0-9]*',arguments.candidate):
                 from .ci import download

@@ -27,6 +27,9 @@ Products must not reimplement those operations.
 
 [The release sequence](docs/release-sequence.md) explains how a push becomes a
 candidate and how approved dependencies precede client publication.
+[The website contract](docs/websites.md) covers immutable Workers frontends and
+source-bound Mintlify observations through `./run docs inspect`. Mintlify
+keeps its existing Git publisher and renderer.
 [The macOS contract](docs/macos.md) specifies signing, Sparkle and Store profiles.
 [The rollout record](docs/rollout.md) distinguishes tested code from credentialed
 product acceptance. No unsigned local build satisfies a signed-release gate.
