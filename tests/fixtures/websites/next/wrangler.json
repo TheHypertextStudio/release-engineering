@@ -51,7 +51,16 @@
         "run_worker_first": [
           "/__studio/release"
         ]
-      }
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "studio-next-fixture-staging-cache"
+        }
+      ]
     },
     "production": {
       "name": "studio-next-fixture-production",
@@ -66,7 +75,16 @@
         "run_worker_first": [
           "/__studio/release"
         ]
-      }
+      },
+      "images": {
+        "binding": "IMAGES"
+      },
+      "r2_buckets": [
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "studio-next-fixture-production-cache"
+        }
+      ]
     }
   }
 }

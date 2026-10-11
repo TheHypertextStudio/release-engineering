@@ -131,3 +131,34 @@ concurrent feed or another candidate's current metadata.
 Publish a corrected client with a higher build number. Service recovery must
 select a compatible previous artifact. Store releases remain subject to Apple
 approval and a fresh authorization check.
+
+## Retained OpenNext cache and Images contract
+
+The shared Workers frontend adapter now accepts native Images bindings and an
+explicit retained OpenNext R2 cache directory. It derives keys from native
+OpenNext 1.20.10's published implementation, validates both environments and
+preview bucket aliases, and uploads/reads exact reviewed bytes through pinned
+Wrangler before Worker deployment. Cache operation receipts bind the artifact
+and selected provider identities, survive partial failures in the production
+promotion journal, and resume completed object operations without re-uploading.
+No OpenNext source build, dependency resolution, bucket provisioning, secret
+creation, provider writes or production release was performed for this change.
+
+Implementation verification and external acceptance are distinct: synthetic
+fault cases cover retries, readback mismatch, identity drift and isolation;
+pinned Wrangler local R2 and Images packaging plus real framework archive
+acceptance cover native behavior. Remote cache permissions and seeding,
+Images transformations, real product/provider behavior, and rollback remain
+required before production adoption. Context7 documentation retrieval was
+attempted and blocked by its monthly quota; the exact installed native schemas
+and source supplied the command and serialization contract.
+
+Fresh verification passed all 180 Python tests with both
+`STUDIO_NATIVE_WORKERS_TESTS=1` and `STUDIO_FRAMEWORK_WORKERS_TESTS=1`, including
+the native R2 round-trip, detached Next cache delivery and authorization fault
+cases. Four Swift tests, actionlint, runtime assembly and `git diff --check`
+also passed. The initial new-checkout baseline failed only because the native
+Sparkle tools had not yet been resolved; resolving the existing Swift package
+removed that prerequisite failure. Parallel product-root changes briefly
+exposed four fixture/compatibility failures; those were fixed before the final
+complete run.
