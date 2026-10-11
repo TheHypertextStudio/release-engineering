@@ -207,3 +207,16 @@ and no provider request, release,
 tag or consumer pin change was performed for this correction. The failed
 capture remains retained evidence; a future authorized hosted capture must
 prove recovery against the real complete deployment.
+
+## Recovery API operation diagnostics: source preparation
+
+Hosted capture 38168366416 verified the v0.1.9 executor checksum, then failed
+with HTTP 403 before retaining a recovery record. The denied endpoint is
+unknown from that run; no permission requirement can be inferred from it.
+The next source patch adds fixed operation labels to HTTP failures for the six
+existing capture reads and three restore writes, with an `unknown` fallback.
+It prints no raw method, URL, query, identifier, header, body or binding value.
+Request order, response guards, pagination and capture/restore/CAS behavior are
+unchanged. Static checks do not establish provider acceptance. No tests were
+added or manually run, and no retry, permission change or provider request was
+performed for this source preparation. Release and hosted diagnosis are pending.

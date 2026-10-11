@@ -51,6 +51,28 @@ class _NoRedirect(HTTPRedirectHandler):
         raise ValueError('Cloudflare recovery API redirects are not allowed')
 
 
+def _recovery_operation(method, path):
+    """Identify a fixed operation without exposing path identifiers or queries."""
+    operations = (
+        ('GET', r'/accounts/[^/]+/workers/scripts/[^/]+/deployments', 'deployments.read'),
+        ('GET', r'/accounts/[^/]+/workers/scripts/[^/]+/versions/[^/]+', 'version.read'),
+        ('GET', r'/accounts/[^/]+/workers/services/[^/]+', 'service.read'),
+        ('GET', r'/accounts/[^/]+/workers/services/[^/]+/environments/[^/]+/routes',
+         'routes.read'),
+        ('GET', r'/accounts/[^/]+/workers/domains/records', 'custom-domains.read'),
+        ('GET', r'/accounts/[^/]+/workers/services/[^/]+/environments/[^/]+/subdomain',
+         'subdomain.read'),
+        ('PUT', r'/accounts/[^/]+/workers/services/[^/]+/environments/[^/]+/routes',
+         'routes.write'),
+        ('PUT', r'/accounts/[^/]+/workers/scripts/[^/]+/domains/records',
+         'custom-domains.write'),
+        ('POST', r'/accounts/[^/]+/workers/scripts/[^/]+/subdomain', 'subdomain.write'),
+    )
+    endpoint = path.partition('?')[0]
+    return next((label for verb, pattern, label in operations
+                 if method == verb and re.fullmatch(pattern, endpoint)), 'unknown')
+
+
 class CloudflareWorkersAPI:
     """Small bounded transport for the scoped Workers recovery endpoints."""
 
@@ -79,7 +101,8 @@ class CloudflareWorkersAPI:
                 raw = response.read(2_000_001)
         except HTTPError as error:
             error.close()
-            raise ValueError(f'Cloudflare recovery API request failed (HTTP {error.code})') from None
+            operation = _recovery_operation(method, path)
+            raise ValueError(f'Cloudflare recovery API request failed (operation={operation}, HTTP {error.code})') from None
         except (URLError, OSError):
             raise ValueError('Cloudflare recovery API request did not complete') from None
         if len(raw) > 2_000_000:
