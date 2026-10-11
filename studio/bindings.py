@@ -24,25 +24,54 @@ def render(value, variables, source_sha):
     return resolved
 
 
+def _uses_variables(value):
+    if isinstance(value,dict):
+        return any(_uses_variables(item) for item in value.values())
+    if isinstance(value,list):
+        return any(_uses_variables(item) for item in value)
+    return isinstance(value,str) and any(match[2] for match in EXPRESSION.finditer(value))
+
+
+def _environment_templates(config, components):
+    templates={}
+    for component in components:
+        for environment,binding in component.get('deploy',{}).get('environments',{}).items():
+            if not isinstance(binding,dict) or not binding.get('env_file_template'): continue
+            origin=(config.root/component['path']/binding['env_file_template']).resolve()
+            if not origin.is_relative_to(config.root): raise ValueError('Environment template escaped repository')
+            templates[(component['id'],environment)]=yaml.safe_load(origin.read_text())
+    return templates
+
+
 def snapshot(config, output, source_sha, api):
+    declared=copy.deepcopy(list(config.components))
     variables={}
-    for route in (f'repos/{config["repository"]}/actions/variables?per_page=100', f'repos/{config["repository"]}/environments/production/variables?per_page=100'):
-        try: response=api(route)
-        except Exception:
-            if 'environments/' not in route: raise
-            continue
-        variables.update({item['name']:item['value'] for item in response.get('variables',[])})
-    components=render(copy.deepcopy(list(config.components)),variables,source_sha)
+    templates=None
+    needs_variables=_uses_variables(declared)
+    if not needs_variables:
+        components=render(declared,variables,source_sha)
+        templates=_environment_templates(config,components)
+        needs_variables=any(_uses_variables(value) for value in templates.values())
+    # Package-only candidates and literal provider configuration do not need
+    # repository-variable API access. Still require it for real vars inputs.
+    if needs_variables:
+        for route in (f'repos/{config["repository"]}/actions/variables?per_page=100', f'repos/{config["repository"]}/environments/production/variables?per_page=100'):
+            try: response=api(route)
+            except Exception:
+                if 'environments/' not in route: raise
+                continue
+            variables.update({item['name']:item['value'] for item in response.get('variables',[])})
+        components=render(declared,variables,source_sha)
+    if templates is None:
+        templates=_environment_templates(config,components)
     files=[]
     for component in components:
         for environment, binding in component.get('deploy',{}).get('environments',{}).items():
             if not isinstance(binding,dict): continue
             template=binding.pop('env_file_template',None)
             if template:
-                origin=(config.root/component['path']/template).resolve()
-                if not origin.is_relative_to(config.root): raise ValueError('Environment template escaped repository')
                 # Render parsed YAML so a variable cannot inject new environment entries.
-                values=render(yaml.safe_load(origin.read_text()),variables,source_sha)
+                values=render(templates[(component['id'],environment)],variables,source_sha)
                 values.update(STUDIO_SOURCE_SHA=source_sha)
                 relative=Path('bindings')/component['id']/f'{environment}.env.yaml'
                 target=output/relative; target.parent.mkdir(parents=True,exist_ok=True)
