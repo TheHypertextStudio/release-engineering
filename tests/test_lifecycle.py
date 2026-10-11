@@ -159,4 +159,5 @@ class LifecycleTests(unittest.TestCase):
                 command = dispatch.call_args.args[0]
                 self.assertIn('candidate_id=candidate-1', command)
                 self.assertIn('manifest_sha256=' + candidate.digest, command)
+                self.assertIn('product_root=.', command)
                 self.assertNotIn('build', command)

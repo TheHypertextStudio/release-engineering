@@ -60,9 +60,15 @@ def migrate_sparkle(public_key,output,*,private_key=None):
         output.write_bytes(result.stdout)
 
 if __name__=='__main__':
+    import argparse
     from .config import load_config
-    manifest=Path('studio.yaml')
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--root',type=Path,default=Path.cwd())
+    parser.add_argument('--output',type=Path,default=Path('.studio/prerequisites.json'))
+    args=parser.parse_args()
+    root=args.root.resolve()
+    manifest=root/'studio.yaml'
     config=load_config(manifest) if manifest.exists() else None
-    report(Path('.studio/prerequisites.json'),config,
+    report(args.output,config,
            migration_public_key=os.environ.get('STUDIO_MIGRATION_PUBLIC_KEY'),
-           migration_output=Path('.studio/sparkle-migration.enc'))
+           migration_output=args.output.parent/'sparkle-migration.enc')

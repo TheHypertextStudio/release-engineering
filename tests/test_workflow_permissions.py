@@ -27,3 +27,19 @@ class WorkflowPermissionsTests(unittest.TestCase):
         for name in ['candidate.yml', 'validate.yml']:
             workflow = yaml.load((root / name).read_text(), Loader=yaml.BaseLoader)
             self.assertEqual(workflow['permissions']['packages'], 'read')
+
+    def test_reusable_lifecycle_workflows_bind_the_selected_root_before_secrets(self):
+        root = Path(__file__).resolve().parents[1] / '.github/workflows'
+        for name in ('candidate.yml', 'promote.yml'):
+            workflow = yaml.load((root / name).read_text(), Loader=yaml.BaseLoader)
+            inputs = workflow['on']['workflow_call']['inputs']
+            self.assertEqual(inputs['product_root']['default'], '.')
+            steps = workflow['jobs']['candidate' if name == 'candidate.yml' else 'promote']['steps']
+            resolver = next(i for i, step in enumerate(steps) if step.get('id') in {'product-root', 'dispatch-root'})
+            credential_steps = [i for i, step in enumerate(steps) if 'secrets.' in str(step.get('env', {}))]
+            self.assertTrue(credential_steps)
+            self.assertLess(resolver, min(credential_steps))
+        candidate = yaml.load((root / 'candidate.yml').read_text(), Loader=yaml.BaseLoader)
+        promote = yaml.load((root / 'promote.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertIn('$GITHUB_WORKSPACE/.studio/candidate', str(candidate))
+        self.assertIn('$GITHUB_WORKSPACE/.studio/candidate', str(promote))

@@ -39,6 +39,13 @@ class CandidateTests(unittest.TestCase):
         with self.assertRaises(CandidateError):
             write_candidate(self.root / 'bad.json', self.data)
 
+    def test_candidate_product_root_is_validated_and_legacy_defaults_to_repository_root(self):
+        write_candidate(self.path, self.data)
+        self.assertEqual(load_candidate(self.path).data.get('product_root', '.'), '.')
+        self.data['product_root'] = '../landing'
+        with self.assertRaises(CandidateError):
+            write_candidate(self.root / 'bad-root.json', self.data)
+
     def test_failed_checks_and_digest_unbound_evidence_block_promotion(self):
         write_candidate(self.path, self.data)
         candidate = load_candidate(self.path)

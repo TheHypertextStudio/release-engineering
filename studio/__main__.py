@@ -111,7 +111,8 @@ def main(argv=None):
             evidence_path = arguments.evidence if arguments.evidence.is_absolute() else root / arguments.evidence
             review = json.loads(evidence_path.read_text())
             validate_promotion(candidate, config, review)
-            command = ['gh', 'workflow', 'run', 'promote.yml', '--repo', config['owner_repository'], '-f', f'candidate_id={candidate.data["id"]}', '-f', f'manifest_sha256={candidate.digest}', '-f', f'evidence={evidence_path.read_text()}']
+            product_root = candidate.data.get('product_root', '.')
+            command = ['gh', 'workflow', 'run', 'promote.yml', '--repo', config['owner_repository'], '-f', f'candidate_id={candidate.data["id"]}', '-f', f'manifest_sha256={candidate.digest}', '-f', f'evidence={evidence_path.read_text()}', '-f', f'product_root={product_root}']
             def dispatch():
                 subprocess.run(command, cwd=root, check=True)
                 return {'state': 'completed', 'dispatched': True}
