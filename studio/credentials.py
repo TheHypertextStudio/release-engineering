@@ -15,10 +15,12 @@ from .providers import execute
 def prepare(config, *, signing=None):
     if signing is None: signing=os.environ.get('GITHUB_EVENT_NAME') not in {'workflow_dispatch','schedule'}
     bindings = config['release'].get('credential_bindings',{})
+    if any(name.startswith('VERCEL_') for name in bindings):
+        raise ValueError('Retired hosting credential binding: use the native Workers frontend deployment')
     signing_variables = {'APPLE_CERTIFICATE_BASE64','APPLE_CERTIFICATE_PASSWORD',
                          'SPARKLE_PRIVATE_KEY','APPLE_PROVISIONING_PROFILES_BASE64'}
     fallback_variables = signing_variables | {'APPLE_API_PRIVATE_KEY','APPLE_API_KEY_ID',
-        'APPLE_API_ISSUER','VERCEL_TOKEN','CLOUDFLARE_API_TOKEN'}
+        'APPLE_API_ISSUER','CLOUDFLARE_API_TOKEN'}
     selected = {name: os.environ[name] for name in fallback_variables if os.environ.get(name)}
     for variable, resource in bindings.items():
         if not signing and variable in signing_variables:

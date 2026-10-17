@@ -1,0 +1,64 @@
+name: Authenticate the Studio Turbo cache
+description: Mint an audience-bound Google ID token for a trusted Studio main workflow.
+inputs:
+  workload-identity-provider:
+    description: Dedicated repository cache Workload Identity Federation provider.
+    required: false
+    default: ''
+  service-account:
+    description: Dedicated cache-client service account to impersonate.
+    required: false
+    default: ''
+  api:
+    description: HTTPS Studio cache endpoint and ID-token audience.
+    required: false
+    default: ''
+  team:
+    description: This repository's isolated artifact namespace.
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - id: validate
+      if: >-
+        github.repository_owner == 'TheHypertextStudio' &&
+        github.ref == 'refs/heads/main' &&
+        (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+        startsWith(github.workflow_ref, format('{0}/.github/workflows/', github.repository)) &&
+        endsWith(github.workflow_ref, '@refs/heads/main') &&
+        inputs.api != '' && inputs.team != '' &&
+        inputs.workload-identity-provider != '' && inputs.service-account != '' &&
+        env.TURBO_REMOTE_CACHE_SIGNATURE_KEY != ''
+      shell: bash
+      env:
+        CACHE_API: ${{ inputs.api }}
+        CACHE_TEAM: ${{ inputs.team }}
+        CACHE_SERVICE_ACCOUNT: ${{ inputs.service-account }}
+        CACHE_WIF_PROVIDER: ${{ inputs.workload-identity-provider }}
+      run: |
+        [[ "$CACHE_API" =~ ^https://[a-zA-Z0-9.-]+(:[0-9]+)?$ ]] || { echo 'Invalid cache HTTPS audience'; exit 1; }
+        [[ "$CACHE_TEAM" =~ ^[a-z0-9][a-z0-9_-]{0,63}$ ]] || { echo 'Invalid cache namespace'; exit 1; }
+        [[ "$CACHE_SERVICE_ACCOUNT" =~ ^[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com$ ]] || { echo 'Invalid cache client identity'; exit 1; }
+        [[ "$CACHE_WIF_PROVIDER" =~ ^projects/[0-9]+/locations/global/workloadIdentityPools/[a-zA-Z0-9_-]+/providers/[a-zA-Z0-9_-]+$ ]] || { echo 'Invalid cache WIF provider'; exit 1; }
+        printf 'enabled=true\n' >> "$GITHUB_OUTPUT"
+    - id: auth
+      if: steps.validate.outputs.enabled == 'true'
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+      with:
+        workload_identity_provider: ${{ inputs.workload-identity-provider }}
+        service_account: ${{ inputs.service-account }}
+        token_format: id_token
+        id_token_audience: ${{ inputs.api }}
+        id_token_include_email: true
+        create_credentials_file: false
+    - name: Enable authenticated remote caching
+      if: steps.auth.outputs.id_token != ''
+      shell: bash
+      env:
+        CACHE_TOKEN: ${{ steps.auth.outputs.id_token }}
+        CACHE_API: ${{ inputs.api }}
+        CACHE_TEAM: ${{ inputs.team }}
+      run: |
+        printf '::add-mask::%s\n' "$CACHE_TOKEN"
+        printf '%s\n' "TURBO_TOKEN=$CACHE_TOKEN" "TURBO_API=$CACHE_API" "TURBO_TEAM=$CACHE_TEAM" 'TURBO_CACHE=local:rw,remote:rw' >> "$GITHUB_ENV"

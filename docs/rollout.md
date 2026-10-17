@@ -158,3 +158,17 @@ No new/manual tests, dependency installation, provider operation, product
 activation, push, PR, runtime publication or website cutover is claimed. The
 historical verification counts above describe the earlier source, not this
 reduced suite. Existing ordinary CI and release gates remain in their workflows.
+
+## Workers hosting standard and shared cache authentication
+
+Current source removes Pages and Vercel publication commands, Vercel prebuilt assembly, and
+credential forwarding. Unsupported website profiles fail before native provider commands;
+retained static artifacts and published legacy runtime bytes remain readable. Website frontends
+own native Workers configuration/deployment. Cloud Run, standalone Worker, native app, package,
+signing, immutable provenance and installed-client compatibility paths retain their contracts.
+
+The independent `actions/turbo-cache` composite supplies short-lived Google authentication to
+Studio main workflows. Callers retain local-only defaults, conditionally expose the HMAC key and
+use a dedicated exact-repository WIF identity. The action introduces no cache server, static token,
+provider permissions or new release workflow. Local checks establish implementation behavior;
+consumer integration and credentialed cache acceptance remain separate external observations.

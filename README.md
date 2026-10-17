@@ -54,7 +54,8 @@ platform checksums. Bootstrap continues to own its implementation and cache
 behavior. Infrastructure provisioning remains explicit.
 
 The current adapters cover native macOS apps, Cloud Run services, Cloudflare
-Workers, Pages, Vercel output and npm packages. Android and iOS distribution
+Workers and npm packages. Website hosting uses native Workers configuration and deployment in
+its frontend repository; retired hosting profiles are rejected before provider commands. Android and iOS distribution
 adapters require their own acceptance before adoption.
 
 Contributors run the following checks with two native workers:
@@ -73,3 +74,11 @@ terraform -chdir=infra/modules/product validate
 The CLI requires Python 3.11 or newer. The release zip application includes the
 pure Python YAML reader. It does not depend on a globally installed Python
 package. Shared native tools also verify their published checksums.
+
+## Shared Turbo cache authentication
+
+Studio Turbo consumers use [the shared authentication action](docs/remote-cache.md) pinned to a
+reviewed commit at `TheHypertextStudio/release-engineering/actions/turbo-cache@<revision>`.
+It mints an audience-bound Google ID token for each repository's dedicated cache identity, keeps
+untrusted refs local-only, and preserves client artifact signatures. This small composite action
+is independent of candidate/promotion workflows and never deploys a website.

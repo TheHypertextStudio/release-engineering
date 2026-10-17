@@ -39,9 +39,10 @@ class WorkflowPermissionsTests(unittest.TestCase):
         assembly = next(step for step in steps if step.get('name') == 'Assemble and stage the immutable candidate')
         for variable in ('APPLE_CERTIFICATE_BASE64','APPLE_CERTIFICATE_PASSWORD','APPLE_API_PRIVATE_KEY',
                          'APPLE_API_KEY_ID','APPLE_API_ISSUER','APPLE_PROVISIONING_PROFILES_BASE64',
-                         'SPARKLE_PRIVATE_KEY','VERCEL_TOKEN','CLOUDFLARE_API_TOKEN'):
+                         'SPARKLE_PRIVATE_KEY','CLOUDFLARE_API_TOKEN'):
             self.assertEqual(prepare['env'][variable], '${{ secrets.' + variable + ' }}')
             self.assertNotIn(variable, assembly['env'], 'Fetched product credentials must survive into assembly')
+        self.assertNotIn('VERCEL_TOKEN', prepare['env'])
         diagnostics = next(step for step in steps if step.get('name') == 'Record release prerequisites')
         self.assertNotIn('secrets.', str(diagnostics.get('env', {})))
 

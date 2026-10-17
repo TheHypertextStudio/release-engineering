@@ -39,7 +39,7 @@ def native_command(component, action):
         if profile=='npm-package':
             return ['pnpm','pack','--pack-destination',build['output']]
         if profile=='vercel-prebuilt':
-            return ['pnpm','dlx','vercel@'+str(build.get('vercel_version','50.28.1')),'build','--yes','--prod']
+            raise ConfigError('Website builds use native Cloudflare Workers commands in the frontend repository')
         if kind == 'swiftpm':
             configuration = build.get('configuration', 'release')
             if configuration not in {'debug', 'release'}:

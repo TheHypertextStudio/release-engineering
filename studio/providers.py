@@ -208,30 +208,8 @@ def deploy_worker(component, artifact, environment, build_root, bindings_root, v
 
 
 def deploy_site(component, artifact, environment, build_root, toolchain, *, runner=execute):
-    deploy=component['deploy']; provider=deploy.get('provider')
-    binding=deploy.get('environments',{}).get(environment)
-    if binding is None: raise ValueError(f'Site lacks isolated {environment} bindings')
-    health=deploy.get('health_urls',{}).get(environment)
-    if not health: raise ValueError('Site requires a declared health probe')
-    if provider=='pages':
-        project=binding.get('project') if isinstance(binding,dict) else binding
-        if not project: raise ValueError('Pages requires an explicit project')
-        branch=deploy.get('production_branch','main') if environment=='production' else f'candidate-{artifact["source_sha"]}'
-        runner([*_native_cli('wrangler',toolchain.get('wrangler')),'pages','deploy',str(build_root),'--project-name',project,'--branch',branch,'--commit-hash',artifact['source_sha']],cwd=build_root)
-    elif provider=='vercel':
-        if not isinstance(binding,dict) or not binding.get('project_id') or not binding.get('org_id'):
-            raise ValueError('Vercel requires immutable project and organization bindings')
-        if not __import__('os').environ.get('VERCEL_TOKEN'): raise ValueError('Vercel release credential is missing')
-        directory=Path(build_root)/'.vercel'; directory.mkdir(exist_ok=True)
-        (directory/'project.json').write_text(json.dumps({'projectId':binding['project_id'],'orgId':binding['org_id']}))
-        # Vercel prebuilt output belongs under .vercel/output. Promotion only moves those bytes.
-        result=runner([*_native_cli('vercel',toolchain.get('vercel')),'deploy','--prebuilt','--yes',*(['--prod'] if environment=='production' else []),'-m',f'studioSourceSha={artifact["source_sha"]}','-m',f'studioArtifactSha256={artifact["sha256"]}'],cwd=build_root,capture=True)
-        if not result or not result.splitlines()[-1].startswith('https://'): raise RuntimeError('Vercel did not return an immutable deployment URL')
-        probe(result.splitlines()[-1],expected_sha=None)
-    else:
-        raise ValueError('Site requires a shared distribution adapter')
-    probe(health,expected_sha=artifact['source_sha'] if deploy.get('health_provenance',False) else None)
-    return {'state':'completed','artifact_sha256':artifact['sha256']}
+    """Reject retired website adapters without invoking a provider or reading credentials."""
+    raise ValueError('Website publication uses native Cloudflare Workers deployment in the frontend repository')
 
 
 def publish_npm(component, archive, *, runner=execute):

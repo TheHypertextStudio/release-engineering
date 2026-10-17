@@ -59,6 +59,8 @@ def _reject_executable_policy(value, prefix=''):
             if name == 'credential_bindings':
                 if prefix != 'release.' or not isinstance(child, dict) or any(not re.fullmatch(r'[A-Z][A-Z0-9_]*', variable) or not isinstance(reference, str) or not re.fullmatch(r'projects/[^/]+/secrets/[^/]+/versions/(?:latest|[0-9]+)', reference) for variable, reference in child.items()):
                     raise ConfigError('Credential bindings must map environment names to Secret Manager resources')
+                if any(variable.startswith('VERCEL_') for variable in child):
+                    raise ConfigError('Retired hosting credentials are not supported by the Workers standard')
                 continue
             if name in {'hook', 'hooks', 'release_hooks', 'pre_release', 'post_release', 'secret', 'secrets', 'password', 'api_token', 'private_key', 'token', 'credentials', 'env'} or name.endswith('_password') or name.endswith('_token') or name.endswith('_private_key'):
                 raise ConfigError(f'{prefix}{key} cannot contain hooks or credentials')
@@ -120,6 +122,11 @@ def load_config(path='studio.yaml'):
         build = component.get('build', {})
         if not isinstance(build, dict):
             raise ConfigError('Build must use native profile inputs')
+        deploy = component.get('deploy', {})
+        if not isinstance(deploy, dict):
+            raise ConfigError('Deployment bindings must be a mapping')
+        if build.get('profile') == 'vercel-prebuilt' or deploy.get('provider') in {'pages', 'vercel'}:
+            raise ConfigError('Website hosting uses native Cloudflare Workers in its frontend repository')
         if 'argv' in build:
             raise ConfigError('Build commands are owned by native lifecycle profiles')
         if 'command' in build or 'script' in build and component['kind'] not in {'pnpm', 'static-site', 'cloudflare-worker', 'cloud-run'}:

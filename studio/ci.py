@@ -13,7 +13,7 @@ import zipfile
 from .candidate import CandidateError, PromotionJournal, load_candidate, sha256, validate_promotion, write_candidate
 from .config import load_config
 from .lifecycle import run
-from .providers import deploy_cloud_run, deploy_worker, deploy_site, publish_npm, execute, probe, upload_asset, worker_plan, verify_download
+from .providers import deploy_cloud_run, deploy_worker, publish_npm, execute, probe, upload_asset, worker_plan, verify_download
 from .product_root import repository_relative_root, validate_product_root
 from .versioning import build_number, version_from_git
 
@@ -326,7 +326,9 @@ def promote_component(config, candidate, component, environment):
         if binding.get('env_file'): binding['env_file']=str(candidate.path.parent/binding['env_file'])
         configured={**component,'deploy':{**component['deploy'],'environments':{**component['deploy']['environments'],environment:binding}}}
         return deploy_cloud_run(configured,bound,environment)
-    if component['kind'] in {'cloudflare-worker','static-site','pnpm'}:
+    if component['kind'] == 'static-site':
+        raise CandidateError('Website publication uses native Cloudflare Workers in its frontend repository')
+    if component['kind'] in {'cloudflare-worker','pnpm'}:
         if len(matches)!=1: raise CandidateError('Component must select one immutable archive')
         with tempfile.TemporaryDirectory() as staging:
             unpack(candidate.path.parent/matches[0]['path'],staging)
@@ -337,11 +339,6 @@ def promote_component(config, candidate, component, environment):
                 packages=list(root.glob('*.tgz'))
                 if len(packages)!=1: raise CandidateError('Package candidate must contain exactly one native package tarball')
                 return publish_npm(component,packages[0])
-            if component.get('build',{}).get('profile')=='vercel-prebuilt':
-                output=root/'.vercel'/'output'; output.mkdir(parents=True)
-                for path in list(root.iterdir()):
-                    if path.name!='.vercel': shutil.move(str(path),output/path.name)
-            return deploy_site(component,matches[0],environment,root,config['toolchain'])
     if component['kind'] == 'macos':
         if environment != 'production':
             raise CandidateError('Shipping identities do not deploy to staging')
