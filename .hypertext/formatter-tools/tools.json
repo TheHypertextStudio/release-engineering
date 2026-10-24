@@ -1,24 +1,17 @@
 {
   "schema_version": 1,
   "prettier": {
-    "version": "3.9.6"
+    "version": "3.9.10"
   },
   "npm": {
     "prettier-plugin-sh": "0.20.2",
-    "prettier-plugin-toml": "4.1.0"
+    "prettier-plugin-toml": "4.1.0",
+    "@thehypertextstudio/format-config": "0.0.1"
   },
-  "ruff": "0.15.9",
+  "ruff": "0.17.2",
   "native_setup": [
-    [
-      "python3",
-      "{repo}/.hypertext/formatter-tools/native-addons.py",
-      "setup-swift"
-    ],
-    [
-      "python3",
-      "{repo}/.hypertext/formatter-tools/native-addons.py",
-      "setup-terraform"
-    ]
+    ["python3", "{repo}/.hypertext/formatter-tools/native-addons.py", "setup-swift"],
+    ["python3", "{repo}/.hypertext/formatter-tools/native-addons.py", "setup-terraform"]
   ],
   "sql_dialect": "postgresql"
 }

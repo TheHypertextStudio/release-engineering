@@ -12,14 +12,7 @@
       ]
     },
     {
-      "include": [
-        "**/*.tf",
-        "*.tf",
-        "**/*.tfvars",
-        "*.tfvars",
-        "**/*.hcl",
-        "*.hcl"
-      ],
+      "include": ["**/*.tf", "*.tf", "**/*.tfvars", "*.tfvars", "**/*.hcl", "*.hcl"],
       "argv": [
         "python3",
         "{repo}/.hypertext/formatter-tools/native-addons.py",
@@ -30,21 +23,11 @@
     },
     {
       "include": ["*.yml", "*.yaml"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "yaml"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "yaml"]
     },
     {
       "include": ["*.json"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "json"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "json"]
     },
     {
       "include": ["*.py", "*.pyi"],
@@ -52,39 +35,19 @@
     },
     {
       "include": ["*.md", "*.markdown", "*.mdc"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "markdown"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "markdown"]
     },
     {
       "include": ["assets/run.sh.in", "*.sh", "*.bash", "*.zsh"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "sh"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "sh"]
     },
     {
       "include": ["*.toml"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "toml"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "toml"]
     },
     {
       "include": ["*.js", "*.jsx", "*.mjs", "*.cjs"],
-      "argv": [
-        "node",
-        ".hypertext/formatter-tools/prettier.mjs",
-        "{path}",
-        "babel"
-      ]
+      "argv": ["node", ".hypertext/formatter-tools/prettier.mjs", "{path}", "babel"]
     }
   ],
   "exclude": [
@@ -94,7 +57,9 @@
         ".hypertext/formatter-tools/setup.py",
         ".hypertext/formatter-tools/run.py",
         ".hypertext/formatter-tools/prettier.mjs",
-        ".hypertext/formatter-tools/text.py"
+        ".hypertext/formatter-tools/text.py",
+        ".hypertext/formatter-tools/preset.mjs",
+        ".hypertext/formatter-tools/npm-lock.json"
       ],
       "kind": "vendored",
       "reason": "Locked shared formatter engine; maintained and formatted in product-standards."
@@ -115,10 +80,7 @@
       "reason": "Images, JAR/archive payloads, and serialized Xcode UI state are binary artifacts."
     },
     {
-      "include": [
-        "tests/fixtures/legacy-runtime/v0.1.7.commit",
-        "infra/**/.terraform.lock.hcl"
-      ],
+      "include": ["tests/fixtures/legacy-runtime/v0.1.7.commit", "infra/**/.terraform.lock.hcl"],
       "kind": "generated",
       "reason": "Immutable release fixture identity and Terraform-generated provider lock selections must retain tool-owned bytes."
     },
