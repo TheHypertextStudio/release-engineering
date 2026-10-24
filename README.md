@@ -82,3 +82,15 @@ reviewed commit at `TheHypertextStudio/release-engineering/actions/turbo-cache@<
 It mints an audience-bound Google ID token for each repository's dedicated cache identity, keeps
 untrusted refs local-only, and preserves client artifact signatures. This small composite action
 is independent of candidate/promotion workflows and never deploys a website.
+
+## Local commit formatting
+
+Prepare the pinned formatting tools and local Git hooks from this repository's root:
+
+```sh
+python3 .hypertext/formatting/install.py
+```
+
+Repeat this command after updating formatter pins or creating a checkout. Commits
+format staged source and configuration while retaining unstaged edits. Setup
+prepares dependencies; committing never downloads tools or starts build services.

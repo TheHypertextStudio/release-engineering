@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "formatters": [
+    {
+      "include": ["**/*.swift", "*.swift"],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native-addons.py",
+        "swift",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "include": [
+        "**/*.tf",
+        "*.tf",
+        "**/*.tfvars",
+        "*.tfvars",
+        "**/*.hcl",
+        "*.hcl"
+      ],
+      "argv": [
+        "python3",
+        "{repo}/.hypertext/formatter-tools/native-addons.py",
+        "terraform",
+        "--path",
+        "{path}"
+      ]
+    },
+    {
+      "include": ["*.yml", "*.yaml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "yaml"
+      ]
+    },
+    {
+      "include": ["*.json"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "json"
+      ]
+    },
+    {
+      "include": ["*.py", "*.pyi"],
+      "argv": ["python3", ".hypertext/formatter-tools/run.py", "{path}"]
+    },
+    {
+      "include": ["*.md", "*.markdown", "*.mdc"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "markdown"
+      ]
+    },
+    {
+      "include": ["assets/run.sh.in", "*.sh", "*.bash", "*.zsh"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "sh"
+      ]
+    },
+    {
+      "include": ["*.toml"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "toml"
+      ]
+    },
+    {
+      "include": ["*.js", "*.jsx", "*.mjs", "*.cjs"],
+      "argv": [
+        "node",
+        ".hypertext/formatter-tools/prettier.mjs",
+        "{path}",
+        "babel"
+      ]
+    }
+  ],
+  "exclude": [
+    {
+      "include": [
+        ".hypertext/formatting/*",
+        ".hypertext/formatter-tools/setup.py",
+        ".hypertext/formatter-tools/run.py",
+        ".hypertext/formatter-tools/prettier.mjs",
+        ".hypertext/formatter-tools/text.py"
+      ],
+      "kind": "vendored",
+      "reason": "Locked shared formatter engine; maintained and formatted in product-standards."
+    },
+    {
+      "include": ["LICENSE"],
+      "kind": "non-formattable",
+      "reason": "Exact license text is legal material, not prose to reflow."
+    },
+    {
+      "include": [".gitignore"],
+      "kind": "non-formattable",
+      "reason": "Git patterns and exact runtime version tokens have tool-specific semantics."
+    },
+    {
+      "include": ["tests/fixtures/legacy-runtime/v0.1.7.tar.gz"],
+      "kind": "binary",
+      "reason": "Images, JAR/archive payloads, and serialized Xcode UI state are binary artifacts."
+    },
+    {
+      "include": [
+        "tests/fixtures/legacy-runtime/v0.1.7.commit",
+        "infra/**/.terraform.lock.hcl"
+      ],
+      "kind": "generated",
+      "reason": "Immutable release fixture identity and Terraform-generated provider lock selections must retain tool-owned bytes."
+    },
+    {
+      "include": ["Package.resolved"],
+      "kind": "generated",
+      "reason": "Tool-owned dependency lock, credential/value file, or exact line protocol; preserve its semantic bytes."
+    },
+    {
+      "include": ["tests/fixtures/legacy-runtime/README.md"],
+      "kind": "generated",
+      "reason": "Immutable package patch or compatibility fixture consumed byte-for-byte."
+    }
+  ]
+}
