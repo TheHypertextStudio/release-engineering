@@ -85,12 +85,18 @@ is independent of candidate/promotion workflows and never deploys a website.
 
 ## Local commit formatting
 
-Prepare the pinned formatting tools and local Git hooks from this repository's root:
+Maintainers prepare the pinned formatting tools and local Git hooks from this
+repository's root. Contributors need neither; their pull request checks decide
+formatting. [The development guide](docs/DEVELOPMENT.md) describes both paths.
 
 ```sh
-python3 .hypertext/formatting/install.py
+python3 scripts/setup.py
 ```
 
 Repeat this command after updating formatter pins or creating a checkout. Commits
 format staged source and configuration while retaining unstaged edits. Setup
 prepares dependencies; committing never downloads tools or starts build services.
+
+## License
+
+This repository is licensed under the [MIT License](LICENSE).
