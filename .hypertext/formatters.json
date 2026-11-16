@@ -70,6 +70,11 @@
       "reason": "Exact license text is legal material, not prose to reflow."
     },
     {
+      "include": [".github/CODEOWNERS"],
+      "kind": "non-formattable",
+      "reason": "Line-oriented ownership patterns."
+    },
+    {
       "include": [".gitignore"],
       "kind": "non-formattable",
       "reason": "Git patterns and exact runtime version tokens have tool-specific semantics."
